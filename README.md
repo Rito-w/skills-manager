@@ -34,6 +34,14 @@
 - 直接下载 Release 安装包使用（适合普通用户）
 - 拉取源码本地运行（适合开发/自定义）
 
+### macOS 安全提示
+
+如果提示“已损坏，无法打开”，可在终端执行（开发阶段临时放行）：
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/skills-manager-gui.app"
+```
+
 ### 1) Market
 
 - 搜索并下载 skills 到本地仓库
