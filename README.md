@@ -2,14 +2,6 @@
 
 一个面向多 IDE 的技能管理器（GUI 版），支持从远程市场下载 skills 到本地仓库，并将本地 skills 安装（链接）到各 IDE 目录。界面简洁、流程清晰。
 
-## 截图（占位）
-
-把截图放到 `docs/screenshots/` 目录，然后替换或保留以下占位引用。
-
-![Market](docs/screenshots/market.png)
-![Local](docs/screenshots/local.png)
-![IDE](docs/screenshots/ide.png)
-
 ## 核心功能
 
 - 远程 Market 搜索（基于公开 registry）
@@ -32,6 +24,11 @@
 - Windsurf: `.windsurf/skills`
 
 ## 使用说明
+
+### 获取方式
+
+- 直接下载 Release 安装包使用（适合普通用户）
+- 拉取源码本地运行（适合开发/自定义）
 
 ### 1) Market
 
@@ -70,12 +67,6 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-产物路径：
-
-- macOS: `src-tauri/target/release/bundle/dmg/*.dmg`
-- Windows: `src-tauri/target/release/bundle/msi/*.msi`
-- Linux: `src-tauri/target/release/bundle/deb/*.deb` 或 `*.AppImage`
-
 ## 远程数据来源
 
 - 搜索接口: `https://claude-plugins.dev/api/skills`
@@ -87,11 +78,6 @@ pnpm tauri build
 - Vue 3 + TypeScript + Vite
 - Rust (后端命令)
 
-## Roadmap
-
-- 本地 skills 搜索与过滤
-- 版本对比与更新提示
-- Windows 适配与签名打包
 
 ## License
 
