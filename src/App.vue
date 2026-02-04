@@ -542,7 +542,7 @@ onMounted(() => {
           <input v-model="customIdeDir" class="input small" placeholder="例如 .myide/skills" />
           <button class="primary" @click="addCustomIde">添加 IDE</button>
         </div>
-        <div v-if="ideOptions.some((option) => option.id.startsWith('custom-'))" class="chips">
+        <div v-if="ideOptions.some((item) => item.id.startsWith('custom-'))" class="chips">
           <div v-for="option in ideOptions" :key="option.id" class="chip" v-if="option.id.startsWith('custom-')">
             <span>{{ option.label }}</span>
             <button class="ghost" @click="removeCustomIde(option.label)">删除</button>
