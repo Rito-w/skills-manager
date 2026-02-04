@@ -351,6 +351,10 @@ const filteredIdeSkills = computed(() =>
   ideSkills.value.filter((skill) => skill.ide === selectedIdeFilter.value)
 );
 
+const customIdeOptions = computed(() =>
+  ideOptions.value.filter((item) => item.id.startsWith("custom-"))
+);
+
 async function uninstallSkill(targetPath: string) {
   uninstallTargetPath.value = targetPath;
   uninstallTargetName.value = targetPath.split("/").pop() || targetPath;
@@ -542,8 +546,8 @@ onMounted(() => {
           <input v-model="customIdeDir" class="input small" placeholder="例如 .myide/skills" />
           <button class="primary" @click="addCustomIde">添加 IDE</button>
         </div>
-        <div v-if="ideOptions.some((item) => item.id.startsWith('custom-'))" class="chips">
-          <div v-for="option in ideOptions" :key="option.id" class="chip" v-if="option.id.startsWith('custom-')">
+        <div v-if="customIdeOptions.length > 0" class="chips">
+          <div v-for="option in customIdeOptions" :key="option.id" class="chip">
             <span>{{ option.label }}</span>
             <button class="ghost" @click="removeCustomIde(option.label)">删除</button>
           </div>
