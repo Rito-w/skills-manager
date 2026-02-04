@@ -5,6 +5,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -47,10 +50,16 @@ jobs:
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/msi/*.msi
 
-      - name: Upload Release Assets
-        if: github.event_name == 'release'
+      - name: Upload Release Assets (macOS)
+        if: github.event_name == 'release' && matrix.os == 'macos-latest'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
+
+      - name: Upload Release Assets (Windows)
+        if: github.event_name == 'release' && matrix.os == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
             src-tauri/target/release/bundle/msi/*.msi
