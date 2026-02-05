@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{Cursor, Read};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use walkdir::WalkDir;
 use zip::ZipArchive;
@@ -328,6 +328,44 @@ fn create_symlink_dir(target: &Path, link: &Path) -> Result<(), String> {
     }
 }
 
+fn is_safe_relative_dir(rel: &str) -> bool {
+    let trimmed = rel.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    let path = Path::new(trimmed);
+    if path.is_absolute() {
+        return false;
+    }
+    for comp in path.components() {
+        match comp {
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => return false,
+            _ => {}
+        }
+    }
+    true
+}
+
+#[cfg(target_family = "windows")]
+fn create_junction_dir(target: &Path, link: &Path) -> Result<(), String> {
+    use std::process::Command;
+    let status = Command::new("cmd")
+        .args([
+            "/C",
+            "mklink",
+            "/J",
+            link.to_string_lossy().as_ref(),
+            target.to_string_lossy().as_ref(),
+        ])
+        .status()
+        .map_err(|err| err.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err("mklink /J failed".to_string())
+    }
+}
+
 #[tauri::command]
 fn search_marketplace(query: String, limit: u64, offset: u64) -> Result<RemoteSkillsResponse, String> {
     let mut url = String::from("https://claude-plugins.dev/api/skills?");
@@ -405,8 +443,24 @@ fn link_local_skill(request: LinkRequest) -> Result<InstallResult, String> {
             continue;
         }
 
-        create_symlink_dir(&skill_path, &link_path)?;
-        linked.push(format!("{}: {}", target.name, link_path.display()));
+        let mut linked_done = false;
+        if create_symlink_dir(&skill_path, &link_path).is_ok() {
+            linked.push(format!("{}: {}", target.name, link_path.display()));
+            linked_done = true;
+        }
+
+        #[cfg(target_family = "windows")]
+        if !linked_done {
+            if create_junction_dir(&skill_path, &link_path).is_ok() {
+                linked.push(format!("{}: junction {}", target.name, link_path.display()));
+                linked_done = true;
+            }
+        }
+
+        if !linked_done {
+            copy_dir_recursive(&skill_path, &link_path)?;
+            linked.push(format!("{}: copy {}", target.name, link_path.display()));
+        }
     }
 
     Ok(InstallResult {
@@ -585,6 +639,9 @@ fn uninstall_skill(request: UninstallRequest) -> Result<String, String> {
     };
 
     for rel in ide_dirs {
+        if !is_safe_relative_dir(&rel) {
+            return Err("IDE 目录非法".to_string());
+        }
         allowed_roots.push(home.join(rel));
     }
     if let Some(project) = request.project_dir {
@@ -598,7 +655,13 @@ fn uninstall_skill(request: UninstallRequest) -> Result<String, String> {
     let target = PathBuf::from(&request.target_path);
     let parent = target.parent().unwrap_or(Path::new(&request.target_path));
     let parent_canon = fs::canonicalize(parent).unwrap_or_else(|_| parent.to_path_buf());
-    let allowed = allowed_roots.iter().any(|root| parent_canon.starts_with(root));
+    let allowed_roots_canon: Vec<PathBuf> = allowed_roots
+        .iter()
+        .map(|root| fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf()))
+        .collect();
+    let allowed = allowed_roots_canon
+        .iter()
+        .any(|root| parent_canon.starts_with(root));
     if !allowed {
         return Err("目标路径不在允许范围内".to_string());
     }
