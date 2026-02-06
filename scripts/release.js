@@ -42,6 +42,6 @@ if (shouldPush) {
   } catch (error) {
     console.warn("No changes to commit, skipping commit step.");
   }
-  execSync(`git tag ${tag}`, { stdio: "inherit" });
+  execSync(`git tag -a ${tag} -m "v${version}"`, { stdio: "inherit" });
   execSync("git push origin main --follow-tags", { stdio: "inherit" });
 }
