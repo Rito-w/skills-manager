@@ -22,6 +22,7 @@
 - CodeBuddy: `.codebuddy/skills`
 - Codex: `.codex/skills`
 - Cursor: `.cursor/skills`
+- Kiro: `.kiro/skills`
 - Qoder: `.qoder/skills`
 - Trae: `.trae/skills`
 - VSCode: `.github/skills`

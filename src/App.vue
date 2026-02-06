@@ -59,12 +59,6 @@ const {
 const theme = ref<"light" | "dark">("light");
 const locale = ref<SupportedLocale>("zh-CN");
 
-const localeOptions = computed(() =>
-  supportedLocales.map((value) => ({
-    value,
-    label: value === "zh-CN" ? "中文" : "English"
-  }))
-);
 
 const applyTheme = (next: "light" | "dark") => {
   document.documentElement.setAttribute("data-theme", next);

@@ -60,6 +60,7 @@ const defaultIdeOptions: IdeOption[] = [
   { id: "codebuddy", label: "CodeBuddy", globalDir: ".codebuddy/skills" },
   { id: "codex", label: "Codex", globalDir: ".codex/skills" },
   { id: "cursor", label: "Cursor", globalDir: ".cursor/skills" },
+  { id: "kiro", label: "Kiro", globalDir: ".kiro/skills" },
   { id: "qoder", label: "Qoder", globalDir: ".qoder/skills" },
   { id: "trae", label: "Trae", globalDir: ".trae/skills" },
   { id: "vscode", label: "VSCode", globalDir: ".github/skills" },
