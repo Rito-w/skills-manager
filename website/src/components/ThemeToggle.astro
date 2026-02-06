@@ -1,0 +1,41 @@
+---
+/**
+ * ThemeToggle - 主题切换按钮
+ * 支持 Light/Dark 模式切换，使用 localStorage 持久化
+ */
+import { Sun, Moon } from 'lucide-react'
+---
+
+<button
+  id="theme-toggle"
+  type="button"
+  class="cursor-pointer relative inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border border-transparent hover:border-border"
+  aria-label="Toggle theme"
+  title="Toggle light/dark mode"
+>
+  <!-- Sun Icon (Light Mode indicator) -->
+  <Sun
+    className="h-4 w-4 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0"
+  />
+  <!-- Moon Icon (Dark Mode indicator) -->
+  <Moon
+    className="absolute h-4 w-4 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100"
+  />
+  <span class="sr-only">Toggle theme</span>
+</button>
+
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  
+  toggle?.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    
+    if (isDark) {
+      document.documentElement.classList.remove('dark');
+      try { localStorage.setItem('theme', 'light'); } catch (e) {}
+    } else {
+      document.documentElement.classList.add('dark');
+      try { localStorage.setItem('theme', 'dark'); } catch (e) {}
+    }
+  });
+</script>

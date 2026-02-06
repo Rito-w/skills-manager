@@ -1,0 +1,28 @@
+---
+import { Languages } from 'lucide-react'
+
+interface Props {
+  lang: 'en' | 'zh'
+}
+
+const { lang } = Astro.props
+
+// 计算目标链接
+// 使用 import.meta.env.BASE_URL 确保兼容 GitHub Pages 的子路径部署 (/voicekey/)
+const baseUrl = import.meta.env.BASE_URL
+const cleanBase = baseUrl === '/' ? '' : baseUrl.replace(/\/$/, '')
+
+const targetLink = lang === 'en' ? `${cleanBase}/zh/` : `${cleanBase}/`
+const targetLabel = lang === 'en' ? '中文' : 'English'
+const shortLabel = lang === 'en' ? 'CN' : 'EN'
+---
+
+<a
+  href={targetLink}
+  class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-secondary/30 hover:bg-secondary/80 text-secondary-foreground text-sm font-medium transition-all backdrop-blur-md border border-border hover:border-primary/50 shadow-sm hover:shadow-md group"
+  aria-label={`Switch to ${targetLabel}`}
+>
+  <Languages className="w-4 h-4 group-hover:text-primary transition-colors" />
+  <span class="hidden sm:inline">{targetLabel}</span>
+  <span class="sm:hidden">{shortLabel}</span>
+</a>

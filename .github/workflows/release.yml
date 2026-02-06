@@ -63,7 +63,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           git add package.json pnpm-lock.yaml CHANGELOG.md src-tauri/tauri.conf.json
           git commit -m "chore(release): v${VERSION}"
-          git tag "v${VERSION}"
+          git tag -a "v${VERSION}" -m "v${VERSION}"
           git push --follow-tags origin HEAD:main
 
       - name: Get new tag
@@ -119,13 +119,19 @@ jobs:
       - name: Build macOS app
         run: pnpm tauri build
 
+      - name: Rename macOS artifacts
+        run: |
+          VERSION=${{ needs.prepare-release.outputs.new_tag }}
+          VERSION=${VERSION#v}
+          DMG=$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n 1)
+          mv "$DMG" "src-tauri/target/release/bundle/dmg/skills-manager-gui_${VERSION}_macos-${{ matrix.arch }}.dmg"
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mac-artifacts-${{ matrix.arch }}
           path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
+            src-tauri/target/release/bundle/dmg/skills-manager-gui_*.dmg
           if-no-files-found: error
 
   build-win:
@@ -159,13 +165,26 @@ jobs:
       - name: Build Windows app
         run: pnpm tauri build
 
+      - name: Rename Windows artifacts
+        shell: pwsh
+        run: |
+          $version = "${{ needs.prepare-release.outputs.new_tag }}".TrimStart("v")
+          $msi = Get-ChildItem "src-tauri/target/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1
+          if ($msi) {
+            Rename-Item $msi.FullName (Join-Path $msi.DirectoryName "skills-manager-gui_${version}_windows-x64.msi")
+          }
+          $exe = Get-ChildItem "src-tauri/target/release/bundle/nsis" -Filter "*.exe" | Select-Object -First 1
+          if ($exe) {
+            Rename-Item $exe.FullName (Join-Path $exe.DirectoryName "skills-manager-gui_${version}_windows-x64-setup.exe")
+          }
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: win-artifacts
           path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/skills-manager-gui_*.msi
+            src-tauri/target/release/bundle/nsis/skills-manager-gui_*.exe
           if-no-files-found: error
 
   release:
@@ -192,9 +211,9 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/**/skills-manager-gui*.dmg
-            artifacts/**/skills-manager-gui*.msi
-            artifacts/**/skills-manager-gui*.exe
+            artifacts/**/skills-manager-gui_*.dmg
+            artifacts/**/skills-manager-gui_*.msi
+            artifacts/**/skills-manager-gui_*.exe
           body: |
             ## 🎉 新版本发布！
 

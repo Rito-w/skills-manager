@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const title = '404 — Page Not Found'
+---
+
+<BaseLayout title={title} lang="en">
+  ---
+  <!-- Server-side: determine if current path is under the zh prefix -->
+  ---
+  {(() => {
+    const baseEnv = import.meta.env.BASE_URL ?? '/'
+    let cleanPath = Astro.url.pathname ?? '/'
+    if (baseEnv !== '/' && cleanPath.startsWith(baseEnv)) {
+      cleanPath = cleanPath.slice(baseEnv.length) || '/'
+    }
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath
+    const isZhPath = cleanPath === '/zh' || cleanPath.startsWith('/zh/')
+
+    if (isZhPath) {
+      return (
+        <main class="min-h-screen flex items-center justify-center">
+          <div class="text-center p-6">
+            <h1 class="text-5xl font-extrabold">404</h1>
+            <p class="mt-4 text-lg">抱歉 — 找不到你请求的页面。</p>
+            <a href="/zh/" class="mt-6 inline-block text-primary underline">返回首页</a>
+          </div>
+        </main>
+      )
+    }
+
+    // Default: English content, plus client-side language detection to redirect zh users to /zh/...
+    return (
+      <>
+        <main class="min-h-screen flex items-center justify-center">
+          <div class="text-center p-6">
+            <h1 class="text-5xl font-extrabold">404</h1>
+            <p class="mt-4 text-lg">Sorry — the page you are looking for does not exist.</p>
+            <a href="/" class="mt-6 inline-block text-primary underline">Go to homepage</a>
+          </div>
+        </main>
+        <script is:inline>{`
+          (function() {
+            try {
+              var base = '${import.meta.env.BASE_URL ?? '/'}';
+              if (base.endsWith('/')) base = base.slice(0, -1);
+              var path = location.pathname;
+              var afterBase = (base !== '' && path.startsWith(base)) ? path.slice(base.length) || '/' : path;
+              if (!afterBase.startsWith('/zh') && navigator.language && navigator.language.toLowerCase().startsWith('zh')) {
+                var target = (base === '' ? '' : base) + '/zh' + (afterBase === '/' ? '' : afterBase);
+                if (location.pathname !== target) location.replace(target);
+              }
+            } catch (e) {}
+          })();
+        `}</script>
+      </>
+    )
+  })()}
+</BaseLayout>
+
+

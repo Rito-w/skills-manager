@@ -1,0 +1,112 @@
+---
+/**
+ * BaseLayout - 基础页面布局
+ */
+
+interface Props {
+  title: string
+  description?: string
+  lang?: 'en' | 'zh'
+  ogImage?: string
+}
+
+const {
+  title,
+  description = 'Skills Manager - Multi-IDE Skills 管理器，支持 Market 下载与本地安装。',
+  lang = 'zh',
+  ogImage = '/og.png',
+} = Astro.props
+
+const siteName = 'Skills Manager'
+const siteUrl = 'https://Rito-w.github.io/skills-manager'
+const canonicalURL = (() => {
+  try {
+    return new URL(Astro.url.pathname, Astro.site).toString()
+  } catch (e) {
+    return siteUrl
+  }
+})()
+const ogImageUrl = (() => {
+  try {
+    return new URL(ogImage, siteUrl).toString()
+  } catch (e) {
+    return `${siteUrl}${ogImage}`
+  }
+})()
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="author" content="Rito-w" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:url" content={siteUrl} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Favicon -->
+    <link rel="icon" href={`${import.meta.env.BASE_URL}/favicon.ico`} sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href={`${import.meta.env.BASE_URL}/favicon-32x32.png`} />
+    <link rel="icon" type="image/png" sizes="16x16" href={`${import.meta.env.BASE_URL}/favicon-16x16.png`} />
+    <link rel="apple-touch-icon" href={`${import.meta.env.BASE_URL}/apple-touch-icon.png`} />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title}</title>
+
+    <script is:inline>
+      (function() {
+        const getTheme = () => {
+          try {
+            if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+              return localStorage.getItem('theme');
+            }
+          } catch (e) {}
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+          }
+          return 'light';
+        };
+
+        const theme = getTheme();
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('theme', theme);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased relative selection:bg-primary/30 selection:text-primary">
+    <div class="fixed inset-0 z-0 h-full w-full bg-background bg-[linear-gradient(to_right,rgba(128,128,128,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>
