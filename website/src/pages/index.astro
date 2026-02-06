@@ -41,7 +41,7 @@ const releaseUrl = 'https://github.com/Rito-w/skills-manager/releases/latest'
 
     <div class="absolute inset-0 bg-linear-to-b from-primary/10 via-transparent to-transparent blur-3xl opacity-40 pointer-events-none"></div>
 
-    <div class="relative z-10 px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+    <div class="relative z-10 px-6 max-w-4xl mx-auto flex flex-col items-center text-center">
       <div>
         <div class="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1 font-mono text-xs text-muted-foreground mb-6">
           <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
@@ -58,7 +58,7 @@ const releaseUrl = 'https://github.com/Rito-w/skills-manager/releases/latest'
           <span class="text-foreground/80 font-medium">让技能分发更统一、更可控。</span>
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+        <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
           <a
             href={releaseUrl}
             class="group relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-lg bg-primary px-7 py-3.5 font-mono text-sm font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-primary/25 hover:scale-[1.02]"
@@ -78,44 +78,38 @@ const releaseUrl = 'https://github.com/Rito-w/skills-manager/releases/latest'
           </a>
         </div>
 
-        <div class="mt-6 flex gap-4 text-xs font-mono text-muted-foreground opacity-70">
+        <div class="mt-6 flex gap-4 text-xs font-mono text-muted-foreground opacity-70 justify-center">
           <span class="flex items-center gap-1.5"><Monitor className="w-3 h-3" /> macOS</span>
           <span class="flex items-center gap-1.5"><Monitor className="w-3 h-3" /> Windows</span>
         </div>
       </div>
 
-      <div class="relative">
-        <div class="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-primary/20 blur-2xl"></div>
-        <div class="absolute -bottom-8 right-0 w-32 h-32 rounded-full bg-accent/30 blur-3xl"></div>
-
-        <div class="grid gap-4">
-          <div class="rounded-2xl border border-border bg-card/80 p-6 shadow-lg">
-            <div class="text-xs font-mono text-primary/80 mb-3">// Quick Overview</div>
-            <div class="space-y-3 text-sm text-muted-foreground">
-              <div class="flex items-center justify-between">
-                <span>Market 查询</span>
-                <span class="font-mono text-foreground">可用</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span>本地仓库</span>
-                <span class="font-mono text-foreground">就绪</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span>IDE 关联</span>
-                <span class="font-mono text-foreground">稳定</span>
-              </div>
+      <div class="mt-8 w-full">
+        <div class="rounded-2xl border border-border bg-card/80 p-6 shadow-lg">
+          <div class="text-xs font-mono text-primary/80 mb-3">// Quick Overview</div>
+          <div class="space-y-3 text-sm text-muted-foreground">
+            <div class="flex items-center justify-between">
+              <span>Market 查询</span>
+              <span class="font-mono text-foreground">可用</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>本地仓库</span>
+              <span class="font-mono text-foreground">就绪</span>
             </div>
           </div>
-          <div class="rounded-2xl border border-border bg-card/80 p-6 shadow-lg">
-            <div class="text-xs font-mono text-primary/80 mb-3">// Supported IDEs</div>
-            <div class="flex flex-wrap gap-2 text-xs">
-              <span class="rounded-full border border-border bg-background/70 px-3 py-1">Codex</span>
-              <span class="rounded-full border border-border bg-background/70 px-3 py-1">Claude</span>
-              <span class="rounded-full border border-border bg-background/70 px-3 py-1">Cursor</span>
-              <span class="rounded-full border border-border bg-background/70 px-3 py-1">Kiro</span>
-              <span class="rounded-full border border-border bg-background/70 px-3 py-1">VSCode</span>
-              <span class="rounded-full border border-border bg-background/70 px-3 py-1">Windsurf</span>
-            </div>
+        </div>
+      </div>
+
+      <div class="mt-6 w-full">
+        <div class="rounded-2xl border border-border bg-card/80 p-6 shadow-lg">
+          <div class="text-xs font-mono text-primary/80 mb-3">// Supported IDEs</div>
+          <div class="flex flex-wrap gap-2 text-xs justify-center">
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Codex</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Claude</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Cursor</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Kiro</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">VSCode</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Windsurf</span>
           </div>
         </div>
       </div>
@@ -131,7 +125,7 @@ const releaseUrl = 'https://github.com/Rito-w/skills-manager/releases/latest'
           统一的 Market、明确的本地仓库、稳定的 IDE 关联。用最少步骤完成下载、安装与维护。
         </p>
         <div class="mt-6 rounded-xl border border-border bg-background/70 p-4 text-sm text-muted-foreground">
-          ✅ 软链接优先 &nbsp;·&nbsp; ✅ 兼容多 IDE &nbsp;·&nbsp; ✅ 状态可追踪
+          软链接优先 &nbsp;·&nbsp; 兼容多 IDE &nbsp;·&nbsp; 状态可追踪
         </div>
       </div>
 
