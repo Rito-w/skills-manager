@@ -116,15 +116,27 @@ const releaseUrl = 'https://github.com/Rito-w/skills-manager/releases/latest'
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="rounded-2xl border border-border bg-card/40 p-4 shadow-sm">
-          <img src="/screenshots/market.png" alt="Market 搜索" class="rounded-xl w-full" />
+          <img
+            src={`${import.meta.env.BASE_URL}screenshots/market.png`}
+            alt="Market 搜索"
+            class="rounded-xl w-full"
+          />
           <div class="mt-3 text-sm text-muted-foreground">Market 搜索</div>
         </div>
         <div class="rounded-2xl border border-border bg-card/40 p-4 shadow-sm">
-          <img src="/screenshots/local.png" alt="本地 Skills" class="rounded-xl w-full" />
+          <img
+            src={`${import.meta.env.BASE_URL}screenshots/local.png`}
+            alt="本地 Skills"
+            class="rounded-xl w-full"
+          />
           <div class="mt-3 text-sm text-muted-foreground">本地 Skills</div>
         </div>
         <div class="rounded-2xl border border-border bg-card/40 p-4 shadow-sm">
-          <img src="/screenshots/ide.png" alt="IDE 浏览" class="rounded-xl w-full" />
+          <img
+            src={`${import.meta.env.BASE_URL}screenshots/ide.png`}
+            alt="IDE 浏览"
+            class="rounded-xl w-full"
+          />
           <div class="mt-3 text-sm text-muted-foreground">IDE 浏览</div>
         </div>
       </div>
