@@ -2,8 +2,8 @@
 
 一个面向多 IDE 的技能管理器（GUI 版），支持从远程市场下载 skills 到本地仓库，并将本地 skills 安装（链接）到各 IDE 目录。界面简洁、流程清晰。
 
-![Market](docs/screenshots/market.png)
 ![Local](docs/screenshots/local.png)
+![Market](docs/screenshots/market.png)
 ![IDE](docs/screenshots/ide.png)
 
 ## 核心功能
