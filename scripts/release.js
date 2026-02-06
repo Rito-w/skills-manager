@@ -37,7 +37,11 @@ if (shouldPush) {
   execSync("git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml", {
     stdio: "inherit"
   });
-  execSync(`git commit -m "chore(release): v${version}"`, { stdio: "inherit" });
+  try {
+    execSync(`git commit -m "chore(release): v${version}"`, { stdio: "inherit" });
+  } catch (error) {
+    console.warn("No changes to commit, skipping commit step.");
+  }
   execSync(`git tag ${tag}`, { stdio: "inherit" });
   execSync("git push origin main --follow-tags", { stdio: "inherit" });
 }
