@@ -1,21 +1,24 @@
 # Skills Manager
 
-一个面向多 IDE 的技能管理器（GUI 版），支持从远程市场下载 skills 到本地仓库，并将本地 skills 安装（链接）到各 IDE 目录。界面简洁、流程清晰。
+[English](README.md) | [中文](README_zh-CN.md)
+
+A cross-IDE skills manager (GUI version) that supports downloading skills from a remote marketplace to a local repository and installing (linking) local skills to various IDE directories. Simple interface, clear workflow.
 
 ![Local](docs/screenshots/local.png)
 ![Market](docs/screenshots/market.png)
 ![IDE](docs/screenshots/ide.png)
 
-## 核心功能
+## Core Features
 
-- 远程 Market 搜索（基于公开 registry）
-- 下载到本地仓库（`~/.skills-manager/skills`）
-- 本地 skills 一键安装到指定 IDE（软链接）
-- IDE 浏览与卸载（移除链接或删除目录）
-- 自定义 IDE（名称 + 目录）
-- 本地已存在则支持 Market 更新
+- Remote Market Search (based on public registry)
+- Download to local repository (`~/.skills-manager/skills`)
+- One-click install of local skills to specified IDEs (symlink)
+- IDE browsing and uninstallation (remove links or delete directories)
+- Custom IDE support (Name + Directory)
+- Support for updating skills if they already exist locally
+- Automatic Update Check: Detects latest GitHub Release on startup
 
-## 默认支持的 IDE（字母顺序）
+## Default Supported IDEs (Alphabetical Order)
 
 - Antigravity: `.agent/skills`
 - Claude: `.claude/skills`
@@ -28,16 +31,16 @@
 - VSCode: `.github/skills`
 - Windsurf: `.windsurf/skills`
 
-## 使用说明
+## Usage
 
-### 获取方式
+### Installation
 
-- 直接下载 Release 安装包使用（适合普通用户）
-- 拉取源码本地运行（适合开发/自定义）
+- Download the Release installer directly (recommended for general users)
+- Pull source code and run locally (for development/customization)
 
-### macOS 安全提示
+### macOS Security Note
 
-如果提示“已损坏，无法打开”，可在终端执行（开发阶段临时放行）：
+If you see "Damaged and can't be opened", you can run the following in the terminal (temporary bypass for development):
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/skills-manager-gui.app"
@@ -45,52 +48,52 @@ xattr -dr com.apple.quarantine "/Applications/skills-manager-gui.app"
 
 ### 1) Market
 
-- 搜索并下载 skills 到本地仓库
-- 如果本地已有该 skill，会显示“更新”按钮
+- Search for and download skills to the local repository
+- If a skill already exists locally, an "Update" button will appear
 
-### 2) 已有 Skills
+### 2) Local Skills
 
-- 展示本地仓库的 skills
-- 点击“安装”可选择一个或多个 IDE 进行安装
+- Displays skills in the local repository
+- Click "Install" to select one or more IDEs for installation
 
-### 3) IDE 浏览
+### 3) IDE Browser
 
-- 选择 IDE 查看其已有 skills
-- 支持卸载（链接则移除链接，非链接则删除目录）
-- 可添加自定义 IDE（名称 + 相对用户目录的 skills 路径）
+- Select an IDE to view its existing skills
+- Supports uninstallation (removes link if linked, deletes directory if not)
+- Add custom IDEs (Name + Path relative to user directory)
 
-## 安装与开发
+## Installation & Development
 
-### 环境依赖
+### Prerequisites
 
-- Node.js (建议 LTS)
-- Rust (通过 rustup 安装)
+- Node.js (LTS recommended)
+- Rust (installed via rustup)
 - macOS: Xcode Command Line Tools
 
-### 本地开发
+### Local Development
 
 ```bash
 pnpm install
 pnpm tauri dev
 ```
 
-### 打包发布
+### Build & Release
 
 ```bash
 pnpm tauri build
 ```
 
 
-## 远程数据来源
+## Remote Data Sources
 
-- 搜索接口: `https://claude-plugins.dev/api/skills`
-- 下载接口: `https://github-zip-api.val.run/zip?source=<repo>`
+- Search API: `https://claude-plugins.dev/api/skills`
+- Download API: `https://github-zip-api.val.run/zip?source=<repo>`
 
-## 技术栈
+## Tech Stack
 
 - Tauri 2
 - Vue 3 + TypeScript + Vite
-- Rust (后端命令)
+- Rust (Backend commands)
 
 
 ## License
