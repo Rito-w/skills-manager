@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { getVersion } from '@tauri-apps/api/app';
-import { open } from '@tauri-apps/plugin-opener';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -43,7 +43,7 @@ function compareVersions(a: string, b: string) {
 
 function openRelease() {
   if (releaseUrl.value) {
-    open(releaseUrl.value);
+    openUrl(releaseUrl.value);
   }
 }
 
