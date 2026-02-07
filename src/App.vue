@@ -9,6 +9,7 @@ import IdePanel from "./components/IdePanel.vue";
 import InstallModal from "./components/InstallModal.vue";
 import UninstallModal from "./components/UninstallModal.vue";
 import LoadingOverlay from "./components/LoadingOverlay.vue";
+import UpdateChecker from "./components/UpdateChecker.vue";
 
 const localeKey = "skillsManager.locale";
 const themeKey = "skillsManager.theme";
@@ -220,6 +221,8 @@ watch(theme, (next) => {
       @confirm="confirmUninstall"
       @cancel="cancelUninstall"
     />
+
+    <UpdateChecker />
 
     <LoadingOverlay :visible="busy" :text="busyText" />
   </div>

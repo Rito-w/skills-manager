@@ -88,5 +88,9 @@ export default {
     scanFailed: "Scan failed",
     installFailed: "Install failed",
     uninstallFailed: "Uninstall failed"
+  },
+  update: {
+    available: "New version available: {version}",
+    view: "View Release"
   }
 };

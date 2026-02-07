@@ -88,5 +88,9 @@ export default {
     scanFailed: "扫描失败",
     installFailed: "安装失败",
     uninstallFailed: "卸载失败"
+  },
+  update: {
+    available: "发现新版本: {version}",
+    view: "查看更新"
   }
 };
