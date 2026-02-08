@@ -7,7 +7,7 @@ const props = defineProps<{
   visible: boolean;
   ideOptions: IdeOption[];
   selected: string[];
-  errorMessage: string | null;
+
 }>();
 
 const emit = defineEmits<{
@@ -62,7 +62,7 @@ const toggleSelectAll = (checked: boolean) => {
           {{ option.label }}
         </label>
       </div>
-      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
+
       <div class="modal-actions">
         <button class="ghost" @click="$emit('cancel')">{{ t("installModal.cancel") }}</button>
         <button class="primary" :disabled="selected.length === 0" @click="$emit('confirm')">

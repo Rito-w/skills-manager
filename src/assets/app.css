@@ -299,6 +299,10 @@ body {
   margin-top: 12px;
 }
 
+.market-cards {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
 .card {
   border: 1px solid var(--color-card-border);
   border-radius: 12px;
@@ -335,6 +339,12 @@ body {
   margin: 10px 0 0;
   font-size: 14px;
   color: var(--color-desc);
+}
+
+.card-source {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-meta);
 }
 
 .card-link {

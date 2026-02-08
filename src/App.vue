@@ -10,6 +10,7 @@ import InstallModal from "./components/InstallModal.vue";
 import UninstallModal from "./components/UninstallModal.vue";
 import LoadingOverlay from "./components/LoadingOverlay.vue";
 import UpdateChecker from "./components/UpdateChecker.vue";
+import Toast from "./components/Toast.vue";
 
 const localeKey = "skillsManager.locale";
 const themeKey = "skillsManager.theme";
@@ -21,13 +22,10 @@ const {
   query,
   results,
   loading,
-  error,
   installingId,
   updatingId,
-  installMessage,
   localSkills,
   localLoading,
-  localError,
   ideOptions,
   selectedIdeFilter,
   customIdeName,
@@ -36,7 +34,6 @@ const {
   filteredIdeSkills,
   showInstallModal,
   installTargetIde,
-  installError,
   showUninstallModal,
   uninstallTargetName,
   busy,
@@ -46,6 +43,7 @@ const {
   searchMarketplace,
   downloadSkill,
   updateSkill,
+  scanLocalSkills,
   openInstallModal,
   updateInstallTargetIde,
   addCustomIde,
@@ -54,7 +52,12 @@ const {
   confirmInstallToIde,
   closeInstallModal,
   confirmUninstall,
-  cancelUninstall
+  cancelUninstall,
+  importLocalSkill,
+  marketConfigs,
+  marketStatuses,
+  enabledMarkets,
+  saveMarketConfigs
 } = useSkillsManager();
 
 const theme = ref<"light" | "dark">("light");
@@ -160,10 +163,10 @@ watch(theme, (next) => {
       <LocalPanel
         :local-skills="localSkills"
         :local-loading="localLoading"
-        :local-error="localError"
-        :install-message="installMessage"
         :installing-id="installingId"
         @install="openInstallModal"
+        @refresh="scanLocalSkills"
+        @import="importLocalSkill"
       />
     </template>
 
@@ -171,18 +174,20 @@ watch(theme, (next) => {
       <MarketPanel
         v-model:query="query"
         :loading="loading"
-        :error="error"
-        :install-message="installMessage"
         :results="results"
         :has-more="hasMore"
         :installing-id="installingId"
         :updating-id="updatingId"
         :local-skill-name-set="localSkillNameSet"
+        :market-configs="marketConfigs"
+        :market-statuses="marketStatuses"
+        :enabled-markets="enabledMarkets"
         @search="searchMarketplace(true)"
         @refresh="searchMarketplace(true, true)"
         @loadMore="searchMarketplace(false)"
         @download="downloadSkill"
         @update="updateSkill"
+        @saveConfigs="saveMarketConfigs"
       />
     </template>
 
@@ -194,7 +199,6 @@ watch(theme, (next) => {
         :custom-ide-dir="customIdeDir"
         :custom-ide-options="customIdeOptions"
         :filtered-ide-skills="filteredIdeSkills"
-        :local-error="localError"
         :local-loading="localLoading"
         @update:selected-ide-filter="selectedIdeFilter = $event"
         @update:custom-ide-name="customIdeName = $event"
@@ -209,7 +213,6 @@ watch(theme, (next) => {
       :visible="showInstallModal"
       :ide-options="ideOptions"
       :selected="installTargetIde"
-      :error-message="installError"
       @update:selected="updateInstallTargetIde"
       @confirm="confirmInstallToIde"
       @cancel="closeInstallModal"
@@ -223,6 +226,8 @@ watch(theme, (next) => {
     />
 
     <UpdateChecker />
+
+    <Toast />
 
     <LoadingOverlay :visible="busy" :text="busyText" />
   </div>

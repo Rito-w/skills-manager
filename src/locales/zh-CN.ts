@@ -27,16 +27,18 @@ export default {
     update: "更新",
     updating: "更新中...",
     loadMore: "加载更多",
-    meta: "{author} · ★ {stars} · {installs} installs"
+    meta: "{author} · ★ {stars} · {installs} installs",
+    source: "来源：{source}"
   },
   local: {
     title: "已有 Skills",
-    hint: "这里展示 Skills Manager 本地仓库中的 skills。",
-    actionsHint: "下载到本地仓库后会自动出现。",
-    scanning: "扫描中...",
-    emptyHint: "暂未扫描到本地 skills",
-    install: "安装",
-    processing: "处理中",
+    hint: "导入本地 Skill 需要选择包含 SKILL.md 的 Skill 文件夹。",
+    scanning: "正在扫描本地 Skills...",
+    emptyHint: "暂无本地 Skill，请尝试从市场下载。",
+    install: "安装到编辑器",
+    import: "导入本地 Skill",
+    selectSkillDir: "选择 Skill 目录",
+    processing: "处理中...",
     usedBy: "已关联 {ideList}",
     unused: "未关联"
   },
@@ -71,26 +73,40 @@ export default {
     title: "处理中"
   },
   messages: {
-    installing: "安装中...",
-    uninstalling: "卸载中...",
-    downloaded: "已下载到 {path}",
-    updated: "已更新 {path}",
-    handled: "已处理 {linked}，跳过 {skipped}"
+    downloaded: "已下载至 {path}",
+    updated: "已更新至 {path}",
+    installed: "已安装至 {ide}",
+    installing: "正在安装...",
+    uninstalling: "正在卸载...",
+    importing: "正在导入...",
+    handled: "已处理 {linked} 个目标，跳过 {skipped} 个目标。",
+    imported: "成功导入 {success} 个 Skill，失败 {failed} 个。"
   },
   errors: {
-    fillIde: "请填写 IDE 名称和目录",
+    searchFailed: "搜索失败，请重试。",
+    downloadFailed: "下载失败。",
+    updateFailed: "更新失败。",
+    scanFailed: "扫描本地 Skill 失败。",
+    installFailed: "安装失败。",
+    uninstallFailed: "卸载失败。",
+    importFailed: "导入失败。",
+    fillIde: "请填写编辑器名称和目录。",
     ideExists: "IDE 名称已存在",
     selectValidIde: "请选择有效的 IDE",
-    selectAtLeastOne: "请选择至少一个 IDE",
-    searchFailed: "搜索失败",
-    downloadFailed: "下载失败",
-    updateFailed: "更新失败",
-    scanFailed: "扫描失败",
-    installFailed: "安装失败",
-    uninstallFailed: "卸载失败"
+    selectAtLeastOne: "请选择至少一个 IDE"
   },
   update: {
     available: "发现新版本: {version}",
     view: "查看更新"
+  },
+  marketSettings: {
+    title: "市场管理",
+    online: "在线",
+    unavailable: "暂不可用",
+    needsKey: "需要 API Key",
+    apiKey: "API Key",
+    apiKeyPlaceholder: "请输入 API Key",
+    cancel: "取消",
+    save: "保存"
   }
 };

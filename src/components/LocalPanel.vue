@@ -7,13 +7,14 @@ const { t } = useI18n();
 defineProps<{
   localSkills: LocalSkill[];
   localLoading: boolean;
-  localError: string | null;
-  installMessage: string | null;
+
   installingId: string | null;
 }>();
 
 defineEmits<{
   (e: "install", skill: LocalSkill): void;
+  (e: "refresh"): void;
+  (e: "import"): void;
 }>();
 </script>
 
@@ -22,10 +23,16 @@ defineEmits<{
     <div class="panel-title">{{ t("local.title") }}</div>
     <div class="hint">{{ t("local.hint") }}</div>
     <div class="actions">
-      <div class="hint">{{ t("local.actionsHint") }}</div>
+      <div class="buttons">
+        <button class="ghost" :disabled="localLoading" @click="$emit('refresh')">
+          {{ localLoading ? t("local.scanning") : t("market.refresh") }}
+        </button>
+        <button class="primary" :disabled="localLoading" @click="$emit('import')">
+          {{ t("local.import") }}
+        </button>
+      </div>
     </div>
-    <div v-if="installMessage" class="message success">{{ installMessage }}</div>
-    <div v-if="localError" class="message error">{{ localError }}</div>
+
     <div v-if="localLoading" class="hint">{{ t("local.scanning") }}</div>
     <div v-if="!localLoading && localSkills.length === 0" class="hint">{{ t("local.emptyHint") }}</div>
     <div v-if="localSkills.length > 0" class="cards">
@@ -52,3 +59,11 @@ defineEmits<{
     </div>
   </section>
 </template>
+
+<style scoped>
+.buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+</style>

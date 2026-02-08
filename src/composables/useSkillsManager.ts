@@ -2,6 +2,7 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { homeDir, join } from "@tauri-apps/api/path";
+import { useToast } from "./useToast";
 
 export type RemoteSkill = {
   id: string;
@@ -12,6 +13,15 @@ export type RemoteSkill = {
   author: string;
   installs: number;
   stars: number;
+  marketId: string;
+  marketLabel: string;
+};
+
+export type MarketStatus = {
+  id: string;
+  name: string;
+  status: "online" | "error" | "needs_key";
+  error?: string;
 };
 
 export type InstallResult = {
@@ -69,6 +79,7 @@ const defaultIdeOptions: IdeOption[] = [
 
 const ideKey = "skillsManager.ideOptions";
 const installTargetKey = "skillsManager.lastInstallTargets";
+const marketConfigsKey = "skillsManager.marketConfigs";
 
 function loadIdeOptions(): IdeOption[] {
   try {
@@ -110,10 +121,11 @@ function saveLastInstallTargets(labels: string[]) {
 
 export function useSkillsManager() {
   const { t } = useI18n();
+  const toast = useToast();
   const cacheTtlMs = 10 * 60 * 1000;
   const searchCache = new Map<
     string,
-    { timestamp: number; data: { skills: RemoteSkill[]; total: number; limit: number; offset: number } }
+    { timestamp: number; data: { skills: RemoteSkill[]; total: number; limit: number; offset: number; marketStatuses: MarketStatus[] } }
   >();
   const activeTab = ref<"local" | "market" | "ide">("local");
 
@@ -123,17 +135,26 @@ export function useSkillsManager() {
   const limit = ref(20);
   const offset = ref(0);
   const loading = ref(false);
-  const error = ref<string | null>(null);
-
   const installingId = ref<string | null>(null);
   const updatingId = ref<string | null>(null);
-  const installMessageRef = ref<string | null>(null);
-  const messageTimer = ref<number | null>(null);
 
+  const marketConfigs = ref<Record<string, string>>({});
+  // Track which markets are enabled by the user
+  const enabledMarkets = ref<Record<string, boolean>>({
+    "claude-plugins": true,
+    "skillsllm": true,
+    "skillsmp": false // Disabled by default until API key is provided
+  });
+  const marketStatuses = ref<MarketStatus[]>([
+    { id: "claude-plugins", name: "Claude Plugins", status: "online" },
+    { id: "skillsllm", name: "SkillsLLM", status: "online" },
+    { id: "skillsmp", name: "SkillsMP", status: "needs_key" }
+  ]);
+
+  // Local Skills
   const localSkills = ref<LocalSkill[]>([]);
   const ideSkills = ref<IdeSkill[]>([]);
   const localLoading = ref(false);
-  const localError = ref<string | null>(null);
 
   const ideOptions = ref<IdeOption[]>([]);
   const selectedIdeFilter = ref("Antigravity");
@@ -143,7 +164,6 @@ export function useSkillsManager() {
   const showInstallModal = ref(false);
   const installTargetSkill = ref<LocalSkill | null>(null);
   const installTargetIde = ref<string[]>([]);
-  const installError = ref<string | null>(null);
 
   const showUninstallModal = ref(false);
   const uninstallTargetPath = ref("");
@@ -162,19 +182,7 @@ export function useSkillsManager() {
     return set;
   });
 
-  const setInstallMessage = (message: string | null) => {
-    installMessageRef.value = message;
-    if (messageTimer.value) {
-      window.clearTimeout(messageTimer.value);
-      messageTimer.value = null;
-    }
-    if (message) {
-      messageTimer.value = window.setTimeout(() => {
-        installMessageRef.value = null;
-        messageTimer.value = null;
-      }, 4000);
-    }
-  };
+
 
   const filteredIdeSkills = computed(() =>
     ideSkills.value.filter((skill) => skill.ide === selectedIdeFilter.value)
@@ -183,6 +191,33 @@ export function useSkillsManager() {
   const customIdeOptions = computed(() =>
     ideOptions.value.filter((item) => item.id.startsWith("custom-"))
   );
+
+  function loadMarketConfigs() {
+    const saved = localStorage.getItem(marketConfigsKey);
+    if (saved) {
+      try {
+        marketConfigs.value = JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse marketConfigs", e);
+      }
+    }
+    // Load enabled markets
+    const savedEnabled = localStorage.getItem('market-enabled');
+    if (savedEnabled) {
+      try {
+        enabledMarkets.value = JSON.parse(savedEnabled);
+      } catch (e) {
+        console.error("Failed to parse enabledMarkets", e);
+      }
+    }
+  }
+
+  function saveMarketConfigs(configs: Record<string, string>, enabled: Record<string, boolean>) {
+    marketConfigs.value = configs;
+    enabledMarkets.value = enabled;
+    localStorage.setItem(marketConfigsKey, JSON.stringify(configs));
+    localStorage.setItem('market-enabled', JSON.stringify(enabled));
+  }
 
   function refreshIdeOptions() {
     ideOptions.value = loadIdeOptions();
@@ -195,12 +230,12 @@ export function useSkillsManager() {
     const name = customIdeName.value.trim();
     const dir = customIdeDir.value.trim();
     if (!name || !dir) {
-      localError.value = t("errors.fillIde");
+      toast.error(t("errors.fillIde"));
       return;
     }
     const normalizedName = name.toLowerCase();
     if (ideOptions.value.some((item) => item.label.toLowerCase() === normalizedName)) {
-      localError.value = t("errors.ideExists");
+      toast.error(t("errors.ideExists"));
       return;
     }
     const existingCustom = ideOptions.value
@@ -213,7 +248,6 @@ export function useSkillsManager() {
     saveIdeOptions(nextCustom);
     customIdeName.value = "";
     customIdeDir.value = "";
-    localError.value = null;
     refreshIdeOptions();
     void scanLocalSkills();
   }
@@ -248,8 +282,6 @@ export function useSkillsManager() {
   async function searchMarketplace(reset = true, force = false) {
     if (loading.value) return;
     loading.value = true;
-    error.value = null;
-    setInstallMessage(null);
 
     const nextOffset = reset ? 0 : offset.value + limit.value;
     const cacheKey = `${query.value.trim().toLowerCase()}|${limit.value}`;
@@ -260,44 +292,70 @@ export function useSkillsManager() {
         results.value = cached.data.skills;
         total.value = cached.data.total;
         offset.value = cached.data.offset;
+        marketStatuses.value = cached.data.marketStatuses;
         loading.value = false;
         return;
       }
     }
 
     try {
-      const response = await invoke("search_marketplace", {
+      const response = await invoke("search_marketplaces", {
         query: query.value,
         limit: limit.value,
-        offset: nextOffset
+        offset: nextOffset,
+        apiKeys: marketConfigs.value,
+        enabledMarkets: enabledMarkets.value
       });
-      const data = response as { skills: RemoteSkill[]; total: number; limit: number; offset: number };
+      const data = response as {
+        skills: RemoteSkill[];
+        total: number;
+        limit: number;
+        offset: number;
+        marketStatuses: MarketStatus[];
+      };
 
-      if (reset) {
-        results.value = data.skills;
-      } else {
-        results.value = [...results.value, ...data.skills];
-      }
+      const deduped = dedupeSkills(reset ? data.skills : [...results.value, ...data.skills]);
+      results.value = deduped;
 
       total.value = data.total;
       offset.value = data.offset;
+      if (Array.isArray(data.marketStatuses)) {
+        marketStatuses.value = data.marketStatuses;
+      }
 
       if (reset) {
-        searchCache.set(cacheKey, { timestamp: Date.now(), data });
+        const cachedStatuses = Array.isArray(data.marketStatuses)
+          ? data.marketStatuses
+          : marketStatuses.value;
+        searchCache.set(cacheKey, {
+          timestamp: Date.now(),
+          data: { ...data, marketStatuses: cachedStatuses }
+        });
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : t("errors.searchFailed");
+      toast.error(err instanceof Error ? err.message : t("errors.searchFailed"));
     } finally {
       loading.value = false;
     }
+  }
+
+  function dedupeSkills(skills: RemoteSkill[]) {
+    const map = new Map<string, RemoteSkill>();
+    for (const skill of skills) {
+      const sourceKey = skill.sourceUrl?.trim().toLowerCase();
+      const nameKey = `${skill.marketId}:${skill.name.trim().toLowerCase()}`;
+      const key = sourceKey || nameKey;
+      if (!map.has(key)) {
+        map.set(key, skill);
+      }
+    }
+    return Array.from(map.values());
   }
 
   async function downloadSkill(skill: RemoteSkill) {
     if (installingId.value) return;
 
     installingId.value = skill.id;
-    error.value = null;
-    setInstallMessage(null);
     busy.value = true;
     busyText.value = t("market.downloading");
 
@@ -311,10 +369,10 @@ export function useSkillsManager() {
         }
       })) as { installedPath: string };
 
-      setInstallMessage(t("messages.downloaded", { path: result.installedPath }));
+      toast.success(t("messages.downloaded", { path: result.installedPath }));
       await scanLocalSkills();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : t("errors.downloadFailed");
+      toast.error(err instanceof Error ? err.message : t("errors.downloadFailed"));
     } finally {
       installingId.value = null;
       busy.value = false;
@@ -326,8 +384,6 @@ export function useSkillsManager() {
     if (updatingId.value) return;
 
     updatingId.value = skill.id;
-    error.value = null;
-    setInstallMessage(null);
     busy.value = true;
     busyText.value = t("market.updating");
 
@@ -341,10 +397,10 @@ export function useSkillsManager() {
         }
       })) as { installedPath: string };
 
-      setInstallMessage(t("messages.updated", { path: result.installedPath }));
+      toast.success(t("messages.updated", { path: result.installedPath }));
       await scanLocalSkills();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : t("errors.updateFailed");
+      toast.error(err instanceof Error ? err.message : t("errors.updateFailed"));
     } finally {
       updatingId.value = null;
       busy.value = false;
@@ -355,7 +411,6 @@ export function useSkillsManager() {
   async function scanLocalSkills() {
     if (localLoading.value) return;
     localLoading.value = true;
-    localError.value = null;
 
     try {
       const response = (await invoke("scan_overview", {
@@ -370,13 +425,13 @@ export function useSkillsManager() {
       localSkills.value = response.managerSkills;
       ideSkills.value = response.ideSkills;
     } catch (err) {
-      localError.value = err instanceof Error ? err.message : t("errors.scanFailed");
+      toast.error(err instanceof Error ? err.message : t("errors.scanFailed"));
     } finally {
       localLoading.value = false;
     }
   }
 
-  async function linkSkillInternal(skill: LocalSkill, ideLabel: string, skipScan = false) {
+  async function linkSkillInternal(skill: LocalSkill, ideLabel: string, skipScan = false, suppressToast = false) {
     const linkTargets = await buildLinkTargets(ideLabel);
     if (linkTargets.length === 0) {
       throw new Error(t("errors.selectValidIde"));
@@ -391,10 +446,13 @@ export function useSkillsManager() {
 
     const linkedCount = result.linked.length;
     const skippedCount = result.skipped.length;
-    setInstallMessage(t("messages.handled", { linked: linkedCount, skipped: skippedCount }));
+    if (!suppressToast) {
+      toast.success(t("messages.handled", { linked: linkedCount, skipped: skippedCount }));
+    }
     if (!skipScan) {
       await scanLocalSkills();
     }
+    return result;
   }
 
   function openInstallModal(skill: LocalSkill) {
@@ -403,40 +461,39 @@ export function useSkillsManager() {
     const available = new Set(ideOptions.value.map((item) => item.label));
     const nextTargets = lastTargets.filter((label) => available.has(label));
     installTargetIde.value = nextTargets;
-    installError.value = null;
     showInstallModal.value = true;
   }
 
   function updateInstallTargetIde(next: string[]) {
     installTargetIde.value = next;
     saveLastInstallTargets(next);
-    if (next.length > 0) {
-      installError.value = null;
-    }
   }
 
   async function confirmInstallToIde() {
     if (!installTargetSkill.value || installTargetIde.value.length === 0) {
-      installError.value = t("errors.selectAtLeastOne");
+      toast.error(t("errors.selectAtLeastOne"));
       return;
     }
     if (installingId.value) return;
     installingId.value = installTargetSkill.value.id;
-    localError.value = null;
-    installError.value = null;
-    setInstallMessage(null);
     busy.value = true;
     busyText.value = t("messages.installing");
 
     try {
+      let totalLinked = 0;
+      let totalSkipped = 0;
+
       for (const label of installTargetIde.value) {
-        await linkSkillInternal(installTargetSkill.value, label, true);
+        const result = await linkSkillInternal(installTargetSkill.value, label, true, true);
+        totalLinked += result.linked.length;
+        totalSkipped += result.skipped.length;
       }
+      toast.success(t("messages.handled", { linked: totalLinked, skipped: totalSkipped }));
       await scanLocalSkills();
       showInstallModal.value = false;
       installTargetSkill.value = null;
     } catch (err) {
-      localError.value = err instanceof Error ? err.message : t("errors.installFailed");
+      toast.error(err instanceof Error ? err.message : t("errors.installFailed"));
     } finally {
       installingId.value = null;
       busy.value = false;
@@ -447,7 +504,6 @@ export function useSkillsManager() {
   function closeInstallModal() {
     showInstallModal.value = false;
     installTargetSkill.value = null;
-    installError.value = null;
   }
 
   function openUninstallModal(targetPath: string) {
@@ -470,10 +526,10 @@ export function useSkillsManager() {
           }))
         }
       })) as string;
-      setInstallMessage(message);
+      toast.success(message);
       await scanLocalSkills();
     } catch (err) {
-      localError.value = err instanceof Error ? err.message : t("errors.uninstallFailed");
+      toast.error(err instanceof Error ? err.message : t("errors.uninstallFailed"));
     } finally {
       showUninstallModal.value = false;
       uninstallTargetPath.value = "";
@@ -489,13 +545,68 @@ export function useSkillsManager() {
     uninstallTargetName.value = "";
   }
 
+  async function importLocalSkill() {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({
+        directory: true,
+        multiple: true,
+        title: t("local.selectSkillDir")
+      });
+
+      if (!selected) return;
+
+      const paths = Array.isArray(selected) ? selected : [selected];
+      if (paths.length === 0) return;
+
+      busy.value = true;
+      busyText.value = t("messages.importing");
+
+      let successCount = 0;
+      let failCount = 0;
+      let lastError = "";
+
+      for (const path of paths) {
+        try {
+          await invoke("import_local_skill", {
+            request: {
+              sourcePath: path
+            }
+          });
+          successCount++;
+        } catch (err) {
+          failCount++;
+          lastError = err instanceof Error ? err.message : String(err);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(t("messages.imported", { success: successCount, failed: failCount }));
+      } else {
+        toast.error(
+          t("messages.imported", { success: 0, failed: failCount }) +
+          (paths.length === 1 ? `: ${lastError}` : "")
+        );
+      }
+
+      await scanLocalSkills();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.importFailed"));
+    } finally {
+      busy.value = false;
+      busyText.value = "";
+    }
+  }
+
   onMounted(() => {
     refreshIdeOptions();
+    loadMarketConfigs();
     void searchMarketplace(true);
     void scanLocalSkills();
   });
 
   return {
+    // State
     activeTab,
     query,
     results,
@@ -503,21 +614,17 @@ export function useSkillsManager() {
     limit,
     offset,
     loading,
-    error,
     installingId,
     updatingId,
-    installMessage: installMessageRef,
     localSkills,
     ideSkills,
     localLoading,
-    localError,
     ideOptions,
     selectedIdeFilter,
     customIdeName,
     customIdeDir,
     showInstallModal,
     installTargetIde,
-    installError,
     showUninstallModal,
     uninstallTargetName,
     busy,
@@ -526,9 +633,15 @@ export function useSkillsManager() {
     localSkillNameSet,
     filteredIdeSkills,
     customIdeOptions,
+    marketConfigs,
+    marketStatuses,
+    enabledMarkets,
+
+    // Actions
     refreshIdeOptions,
     addCustomIde,
     removeCustomIde,
+    saveMarketConfigs,
     searchMarketplace,
     downloadSkill,
     updateSkill,
@@ -539,6 +652,7 @@ export function useSkillsManager() {
     closeInstallModal,
     openUninstallModal,
     confirmUninstall,
-    cancelUninstall
+    cancelUninstall,
+    importLocalSkill
   };
 }

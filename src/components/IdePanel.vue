@@ -11,7 +11,7 @@ defineProps<{
   customIdeDir: string;
   customIdeOptions: IdeOption[];
   filteredIdeSkills: IdeSkill[];
-  localError: string | null;
+
   localLoading: boolean;
 }>();
 
@@ -63,7 +63,7 @@ defineEmits<{
         <button class="ghost" @click="$emit('removeCustomIde', option.label)">{{ t("ide.deleteButton") }}</button>
       </div>
     </div>
-    <div v-if="localError" class="message error">{{ localError }}</div>
+
     <div v-if="localLoading" class="hint">{{ t("ide.loading") }}</div>
     <div v-if="!localLoading && filteredIdeSkills.length === 0" class="hint">{{ t("ide.emptyHint") }}</div>
     <div v-if="filteredIdeSkills.length > 0" class="cards">

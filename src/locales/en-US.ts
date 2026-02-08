@@ -27,16 +27,18 @@ export default {
     update: "Update",
     updating: "Updating...",
     loadMore: "Load More",
-    meta: "{author} · ★ {stars} · {installs} installs"
+    meta: "{author} · ★ {stars} · {installs} installs",
+    source: "Source: {source}"
   },
   local: {
     title: "Local Skills",
-    hint: "Skills in the local Skills Manager repository.",
-    actionsHint: "Downloaded skills will appear here.",
-    scanning: "Scanning...",
-    emptyHint: "No local skills found",
-    install: "Install",
-    processing: "Processing",
+    hint: "To import local skills, select the folder containing SKILL.md.",
+    scanning: "Scanning local skills...",
+    emptyHint: "No local skills found. Try downloading some from the Market.",
+    install: "Install to IDE",
+    import: "Import Local Skill",
+    selectSkillDir: "Select Skill Directory",
+    processing: "Processing...",
     usedBy: "Linked to {ideList}",
     unused: "Not linked"
   },
@@ -71,26 +73,40 @@ export default {
     title: "Processing"
   },
   messages: {
+    downloaded: "Downloaded to {path}",
+    updated: "Updated to {path}",
+    installed: "Installed to {ide}",
     installing: "Installing...",
     uninstalling: "Uninstalling...",
-    downloaded: "Downloaded to {path}",
-    updated: "Updated {path}",
-    handled: "Linked {linked}, skipped {skipped}"
+    importing: "Importing...",
+    handled: "Handled {linked} targets, skipped {skipped} targets.",
+    imported: "Successfully imported {success} skills, failed {failed}."
   },
   errors: {
-    fillIde: "Please fill IDE name and directory",
+    fillIde: "Please fill in IDE name and directory.",
     ideExists: "IDE name already exists",
     selectValidIde: "Select a valid IDE",
     selectAtLeastOne: "Select at least one IDE",
-    searchFailed: "Search failed",
-    downloadFailed: "Download failed",
-    updateFailed: "Update failed",
-    scanFailed: "Scan failed",
-    installFailed: "Install failed",
-    uninstallFailed: "Uninstall failed"
+    searchFailed: "Search failed. Please try again.",
+    downloadFailed: "Download failed.",
+    updateFailed: "Update failed.",
+    scanFailed: "Failed to scan local skills.",
+    installFailed: "Installation failed.",
+    uninstallFailed: "Uninstallation failed.",
+    importFailed: "Import failed."
   },
   update: {
     available: "New version available: {version}",
     view: "View Release"
+  },
+  marketSettings: {
+    title: "Market Settings",
+    online: "Online",
+    unavailable: "Unavailable",
+    needsKey: "Needs API Key",
+    apiKey: "API Key",
+    apiKeyPlaceholder: "Enter API Key",
+    cancel: "Cancel",
+    save: "Save"
   }
 };
