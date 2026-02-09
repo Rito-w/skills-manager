@@ -2,7 +2,7 @@
 
 [English](README.md) | [中文](README_zh-CN.md)
 
-A cross-IDE skills manager (GUI version) that supports downloading skills from a remote marketplace to a local repository and installing (linking) local skills to various IDE directories. Simple interface, clear workflow.
+**Multi-market aggregated search, one-click install to 10+ AI IDEs.** A cross-platform skills manager that lets you search skills from multiple marketplaces (Claude Plugins, SkillsLLM, SkillsMP), download to a local repository, and install to any AI-powered IDE with a single click.
 
 ![Local](docs/screenshots/local.png)
 ![Market](docs/screenshots/market.png)
@@ -86,7 +86,9 @@ pnpm tauri build
 
 ## Remote Data Sources
 
-- Search API: `https://claude-plugins.dev/api/skills`
+- **Claude Plugins**: `https://claude-plugins.dev/api/skills`
+- **SkillsLLM**: `https://skillsllm.com/api/skills`
+- **SkillsMP**: `https://skillsmp.com/api/v1/skills/search` (API key required)
 - Download API: `https://github-zip-api.val.run/zip?source=<repo>`
 
 ## Tech Stack

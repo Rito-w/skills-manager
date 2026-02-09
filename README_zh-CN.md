@@ -2,7 +2,7 @@
 
 [English](README.md) | [中文](README_zh-CN.md)
 
-一个面向多 IDE 的技能管理器（GUI 版），支持从远程市场下载 skills 到本地仓库，并将本地 skills 安装（链接）到各 IDE 目录。界面简洁、流程清晰。
+**多市场聚合搜索，一键安装到 10+ AI IDE。** 跨平台 Skills 管理器，支持从多个技能市场（Claude Plugins、SkillsLLM、SkillsMP）聚合搜索，下载到本地仓库，一键安装到任意 AI IDE。
 
 ![Local](docs/screenshots/local.png)
 ![Market](docs/screenshots/market.png)
@@ -86,7 +86,9 @@ pnpm tauri build
 
 ## 远程数据来源
 
-- 搜索接口: `https://claude-plugins.dev/api/skills`
+- **Claude Plugins**: `https://claude-plugins.dev/api/skills`
+- **SkillsLLM**: `https://skillsllm.com/api/skills`
+- **SkillsMP**: `https://skillsmp.com/api/v1/skills/search`（需要 API Key）
 - 下载接口: `https://github-zip-api.val.run/zip?source=<repo>`
 
 ## 技术栈
