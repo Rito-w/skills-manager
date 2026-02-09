@@ -24,6 +24,7 @@ export default {
     emptyHint: "No results",
     download: "Download",
     downloading: "Downloading",
+    queued: "In Queue",
     update: "Update",
     updating: "Updating...",
     loadMore: "Load More",
@@ -109,5 +110,13 @@ export default {
     apiKeyPlaceholder: "Enter API Key",
     cancel: "Cancel",
     save: "Save"
+  },
+  download: {
+    title: "Downloading",
+    pending: "Pending...",
+    downloading: "Downloading...",
+    done: "Done",
+    error: "Download failed",
+    retry: "Retry"
   }
 };

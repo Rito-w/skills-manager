@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { LocalSkill } from "../composables/useSkillsManager";
+import type { LocalSkill, DownloadTask } from "../composables/useSkillsManager";
+import DownloadQueue from "./DownloadQueue.vue";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -7,14 +8,16 @@ const { t } = useI18n();
 defineProps<{
   localSkills: LocalSkill[];
   localLoading: boolean;
-
   installingId: string | null;
+  downloadQueue: DownloadTask[];
 }>();
 
 defineEmits<{
   (e: "install", skill: LocalSkill): void;
   (e: "refresh"): void;
   (e: "import"): void;
+  (e: "retryDownload", taskId: string): void;
+  (e: "removeFromQueue", taskId: string): void;
 }>();
 </script>
 
@@ -33,6 +36,12 @@ defineEmits<{
       </div>
     </div>
 
+    <DownloadQueue
+      :tasks="downloadQueue"
+      @retry="$emit('retryDownload', $event)"
+      @remove="$emit('removeFromQueue', $event)"
+    />
+
     <div v-if="localLoading" class="hint">{{ t("local.scanning") }}</div>
     <div v-if="!localLoading && localSkills.length === 0" class="hint">{{ t("local.emptyHint") }}</div>
     <div v-if="localSkills.length > 0" class="cards">
@@ -40,14 +49,6 @@ defineEmits<{
         <div class="card-header">
           <div>
             <div class="card-title">{{ skill.name }}</div>
-            <div class="card-meta">
-              Skills Manager ·
-              {{
-                skill.usedBy.length > 0
-                  ? t("local.usedBy", { ideList: skill.usedBy.join(", ") })
-                  : t("local.unused")
-              }}
-            </div>
           </div>
           <button class="primary" :disabled="installingId === skill.id" @click="$emit('install', skill)">
             {{ installingId === skill.id ? t("local.processing") : t("local.install") }}

@@ -15,8 +15,6 @@ jobs:
         include:
           - platform: 'macos-latest' # for Arm64
             args: '--target aarch64-apple-darwin'
-          - platform: 'macos-13' # for Intel
-            args: '--target x86_64-apple-darwin'
           - platform: 'windows-latest'
             args: ''
 

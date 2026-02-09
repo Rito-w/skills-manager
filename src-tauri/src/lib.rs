@@ -890,40 +890,46 @@ fn search_marketplaces(
 }
 
 #[tauri::command]
-fn download_marketplace_skill(request: DownloadRequest) -> Result<DownloadResult, String> {
+async fn download_marketplace_skill(request: DownloadRequest) -> Result<DownloadResult, String> {
     if request.install_base_dir.trim().is_empty() {
         return Err("安装目录不能为空".to_string());
     }
 
+    let source_url = request.source_url.clone();
+    let skill_name = request.skill_name.clone();
     let install_base_dir = PathBuf::from(&request.install_base_dir);
-    let target_dir = download_skill_to_dir(
-        &request.source_url,
-        &request.skill_name,
-        &install_base_dir,
-        false,
-    )?;
+
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        download_skill_to_dir(&source_url, &skill_name, &install_base_dir, false)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
 
     Ok(DownloadResult {
-        installed_path: target_dir.display().to_string(),
+        installed_path: result.display().to_string(),
     })
 }
 
 #[tauri::command]
-fn update_marketplace_skill(request: DownloadRequest) -> Result<DownloadResult, String> {
+async fn update_marketplace_skill(request: DownloadRequest) -> Result<DownloadResult, String> {
     if request.install_base_dir.trim().is_empty() {
         return Err("安装目录不能为空".to_string());
     }
 
+    let source_url = request.source_url.clone();
+    let skill_name = request.skill_name.clone();
     let install_base_dir = PathBuf::from(&request.install_base_dir);
-    let target_dir = download_skill_to_dir(
-        &request.source_url,
-        &request.skill_name,
-        &install_base_dir,
-        true,
-    )?;
+
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        download_skill_to_dir(&source_url, &skill_name, &install_base_dir, true)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
 
     Ok(DownloadResult {
-        installed_path: target_dir.display().to_string(),
+        installed_path: result.display().to_string(),
     })
 }
 
@@ -1106,7 +1112,17 @@ fn collect_ide_skills(
         let (name, _) = read_skill_metadata(skill_dir);
         let path = skill_dir.to_path_buf();
         let source = if let Ok(link_target) = fs::read_link(&path) {
-            if let Some(target) = resolve_canonical(&link_target) {
+            // If link_target is relative, resolve it relative to the symlink's parent directory
+            let absolute_target = if link_target.is_relative() {
+                if let Some(parent) = path.parent() {
+                    parent.join(&link_target)
+                } else {
+                    link_target.clone()
+                }
+            } else {
+                link_target
+            };
+            if let Some(target) = resolve_canonical(&absolute_target) {
                 for (manager_path, idx) in manager_map {
                     if *manager_path == target {
                         if let Some(skill) = manager_skills.get_mut(*idx) {

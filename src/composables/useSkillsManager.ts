@@ -64,8 +64,16 @@ type LinkTarget = {
   path: string;
 };
 
+export type DownloadTask = {
+  id: string;
+  name: string;
+  sourceUrl: string;
+  status: 'pending' | 'downloading' | 'done' | 'error';
+  error?: string;
+};
+
 const defaultIdeOptions: IdeOption[] = [
-  { id: "antigravity", label: "Antigravity", globalDir: ".agent/skills" },
+  { id: "antigravity", label: "Antigravity", globalDir: ".gemini/antigravity/skills" },
   { id: "claude", label: "Claude", globalDir: ".claude/skills" },
   { id: "codebuddy", label: "CodeBuddy", globalDir: ".codebuddy/skills" },
   { id: "codex", label: "Codex", globalDir: ".codex/skills" },
@@ -155,6 +163,10 @@ export function useSkillsManager() {
   const localSkills = ref<LocalSkill[]>([]);
   const ideSkills = ref<IdeSkill[]>([]);
   const localLoading = ref(false);
+
+  // Download Queue
+  const downloadQueue = ref<DownloadTask[]>([]);
+  let isProcessingQueue = false;
 
   const ideOptions = ref<IdeOption[]>([]);
   const selectedIdeFilter = ref("Antigravity");
@@ -352,32 +364,69 @@ export function useSkillsManager() {
     return Array.from(map.values());
   }
 
-  async function downloadSkill(skill: RemoteSkill) {
-    if (installingId.value) return;
-
-    installingId.value = skill.id;
-    busy.value = true;
-    busyText.value = t("market.downloading");
-
-    try {
-      const installBaseDir = await buildInstallBaseDir();
-      const result = (await invoke("download_marketplace_skill", {
-        request: {
-          sourceUrl: skill.sourceUrl,
-          skillName: skill.name,
-          installBaseDir
-        }
-      })) as { installedPath: string };
-
-      toast.success(t("messages.downloaded", { path: result.installedPath }));
-      await scanLocalSkills();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("errors.downloadFailed"));
-    } finally {
-      installingId.value = null;
-      busy.value = false;
-      busyText.value = "";
+  function addToDownloadQueue(skill: RemoteSkill) {
+    // Check if already in queue
+    if (downloadQueue.value.some(t => t.id === skill.id)) {
+      return;
     }
+    downloadQueue.value.push({
+      id: skill.id,
+      name: skill.name,
+      sourceUrl: skill.sourceUrl,
+      status: 'pending'
+    });
+    processQueue();
+  }
+
+  async function processQueue() {
+    if (isProcessingQueue) return;
+    isProcessingQueue = true;
+
+    while (true) {
+      const task = downloadQueue.value.find(t => t.status === 'pending');
+      if (!task) break;
+
+      task.status = 'downloading';
+      try {
+        const installBaseDir = await buildInstallBaseDir();
+        await invoke("download_marketplace_skill", {
+          request: {
+            sourceUrl: task.sourceUrl,
+            skillName: task.name,
+            installBaseDir
+          }
+        });
+        task.status = 'done';
+        // Remove completed task after a short delay
+        setTimeout(() => {
+          downloadQueue.value = downloadQueue.value.filter(t => t.id !== task.id);
+          scanLocalSkills();
+        }, 1500);
+      } catch (err) {
+        task.status = 'error';
+        task.error = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    isProcessingQueue = false;
+  }
+
+  function removeFromQueue(taskId: string) {
+    downloadQueue.value = downloadQueue.value.filter(t => t.id !== taskId);
+  }
+
+  function retryDownload(taskId: string) {
+    const task = downloadQueue.value.find(t => t.id === taskId);
+    if (task && task.status === 'error') {
+      task.status = 'pending';
+      task.error = undefined;
+      processQueue();
+    }
+  }
+
+  // Keep original downloadSkill for backward compatibility (called by updateSkill)
+  async function downloadSkill(skill: RemoteSkill) {
+    addToDownloadQueue(skill);
   }
 
   async function updateSkill(skill: RemoteSkill) {
@@ -636,6 +685,7 @@ export function useSkillsManager() {
     marketConfigs,
     marketStatuses,
     enabledMarkets,
+    downloadQueue,
 
     // Actions
     refreshIdeOptions,
@@ -653,6 +703,9 @@ export function useSkillsManager() {
     openUninstallModal,
     confirmUninstall,
     cancelUninstall,
-    importLocalSkill
+    importLocalSkill,
+    addToDownloadQueue,
+    removeFromQueue,
+    retryDownload
   };
 }

@@ -1,25 +1,26 @@
 <script setup lang="ts">
-import type { RemoteSkill, MarketStatus } from "../composables/useSkillsManager";
+import type { RemoteSkill, MarketStatus, DownloadTask } from "../composables/useSkillsManager";
 import { useI18n } from "vue-i18n";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import MarketSettingsModal from "./MarketSettingsModal.vue";
 
 const { t } = useI18n();
 
-defineProps<{
+const props = defineProps<{
   query: string;
   loading: boolean;
-
   results: RemoteSkill[];
   hasMore: boolean;
   installingId: string | null;
   updatingId: string | null;
   localSkillNameSet: Set<string>;
-  
   marketConfigs: Record<string, string>;
   marketStatuses: MarketStatus[];
   enabledMarkets: Record<string, boolean>;
+  downloadQueue: DownloadTask[];
 }>();
+
+const downloadingIds = computed(() => new Set(props.downloadQueue.map(t => t.id)));
 
 defineEmits<{
   (e: "update:query", value: string): void;
@@ -82,8 +83,12 @@ const showSettings = ref(false);
             </button>
           </template>
           <template v-else>
-            <button class="primary" :disabled="installingId === skill.id" @click="$emit('download', skill)">
-              {{ installingId === skill.id ? t("market.downloading") : t("market.download") }}
+            <button 
+              class="primary" 
+              :disabled="downloadingIds.has(skill.id)" 
+              @click="$emit('download', skill)"
+            >
+              {{ downloadingIds.has(skill.id) ? t("market.queued") : t("market.download") }}
             </button>
           </template>
         </div>

@@ -57,7 +57,10 @@ const {
   marketConfigs,
   marketStatuses,
   enabledMarkets,
-  saveMarketConfigs
+  saveMarketConfigs,
+  downloadQueue,
+  retryDownload,
+  removeFromQueue
 } = useSkillsManager();
 
 const theme = ref<"light" | "dark">("light");
@@ -164,9 +167,12 @@ watch(theme, (next) => {
         :local-skills="localSkills"
         :local-loading="localLoading"
         :installing-id="installingId"
+        :download-queue="downloadQueue"
         @install="openInstallModal"
         @refresh="scanLocalSkills"
         @import="importLocalSkill"
+        @retry-download="retryDownload"
+        @remove-from-queue="removeFromQueue"
       />
     </template>
 
@@ -182,6 +188,7 @@ watch(theme, (next) => {
         :market-configs="marketConfigs"
         :market-statuses="marketStatuses"
         :enabled-markets="enabledMarkets"
+        :download-queue="downloadQueue"
         @search="searchMarketplace(true)"
         @refresh="searchMarketplace(true, true)"
         @loadMore="searchMarketplace(false)"

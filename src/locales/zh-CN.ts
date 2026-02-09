@@ -24,6 +24,7 @@ export default {
     emptyHint: "暂无结果",
     download: "下载到本地",
     downloading: "下载中",
+    queued: "已加入队列",
     update: "更新",
     updating: "更新中...",
     loadMore: "加载更多",
@@ -109,5 +110,13 @@ export default {
     apiKeyPlaceholder: "请输入 API Key",
     cancel: "取消",
     save: "保存"
+  },
+  download: {
+    title: "正在下载",
+    pending: "等待中...",
+    downloading: "下载中...",
+    done: "完成",
+    error: "下载失败",
+    retry: "重试"
   }
 };

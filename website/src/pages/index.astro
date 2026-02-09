@@ -8,18 +8,18 @@ const description = '从 Market 下载、管理本地 Skills，并一键安装�
 const features = [
   {
     icon: Store,
-    title: 'Market 搜索与下载',
-    desc: '基于公开 registry 检索技能，支持快速下载与更新。',
+    title: '多市场聚合搜索',
+    desc: '同时搜索 Claude Plugins、SkillsLLM 等多个市场，一键下载。',
   },
   {
     icon: FolderTree,
-    title: '本地仓库管理',
-    desc: '集中管理本地 Skills，清晰展示关联 IDE 状态。',
+    title: '统一本地仓库',
+    desc: '所有 Skills 集中管理，清晰展示关联 IDE 状态。',
   },
   {
     icon: Link2,
-    title: '一键安装到 IDE',
-    desc: '软链接优先，支持多 IDE 目录与自定义路径。',
+    title: '多 IDE 一键安装',
+    desc: '支持 10+ AI IDE，软链接优先，一次下载处处可用。',
   },
 ]
 
@@ -84,30 +84,36 @@ const releaseUrl = 'https://github.com/Rito-w/skills-manager/releases/latest'
         </div>
       </div>
 
-      <div class="mt-8 w-full">
         <div class="rounded-2xl border border-border bg-card/80 p-6 shadow-lg">
           <div class="text-xs font-mono text-primary/80 mb-3">// Quick Overview</div>
           <div class="space-y-3 text-sm text-muted-foreground">
             <div class="flex items-center justify-between">
-              <span>Market 查询</span>
-              <span class="font-mono text-foreground">可用</span>
+              <span>多市场聚合搜索</span>
+              <span class="font-mono text-foreground">Claude Plugins / SkillsLLM / SkillsMP</span>
             </div>
             <div class="flex items-center justify-between">
-              <span>本地仓库</span>
-              <span class="font-mono text-foreground">就绪</span>
+              <span>支持 IDE 数量</span>
+              <span class="font-mono text-foreground">10+</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>自动更新</span>
+              <span class="font-mono text-foreground">已支持</span>
             </div>
           </div>
         </div>
-      </div>
 
       <div class="mt-6 w-full">
         <div class="rounded-2xl border border-border bg-card/80 p-6 shadow-lg">
           <div class="text-xs font-mono text-primary/80 mb-3">// Supported IDEs</div>
           <div class="flex flex-wrap gap-2 text-xs justify-center">
-            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Codex</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Antigravity</span>
             <span class="rounded-full border border-border bg-background/70 px-3 py-1">Claude</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">CodeBuddy</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Codex</span>
             <span class="rounded-full border border-border bg-background/70 px-3 py-1">Cursor</span>
             <span class="rounded-full border border-border bg-background/70 px-3 py-1">Kiro</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Qoder</span>
+            <span class="rounded-full border border-border bg-background/70 px-3 py-1">Trae</span>
             <span class="rounded-full border border-border bg-background/70 px-3 py-1">VSCode</span>
             <span class="rounded-full border border-border bg-background/70 px-3 py-1">Windsurf</span>
           </div>
