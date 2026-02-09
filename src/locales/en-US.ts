@@ -97,7 +97,8 @@ export default {
   },
   update: {
     available: "New version available: {version}",
-    view: "View Release"
+    view: "View Release",
+    install: "Update Now"
   },
   marketSettings: {
     title: "Market Settings",

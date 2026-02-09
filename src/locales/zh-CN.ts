@@ -97,7 +97,8 @@ export default {
   },
   update: {
     available: "发现新版本: {version}",
-    view: "查看更新"
+    view: "查看更新",
+    install: "立即更新"
   },
   marketSettings: {
     title: "市场管理",

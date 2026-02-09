@@ -1,27 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getVersion } from '@tauri-apps/api/app';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const updateAvailable = ref(false);
 const latestVersion = ref('');
-const releaseUrl = ref('');
+const updating = ref(false);
+
+let update: Awaited<ReturnType<typeof check>> | null = null;
 
 async function checkUpdate() {
   try {
-    const current = await getVersion();
-    const response = await fetch('https://api.github.com/repos/Rito-w/skills-manager/releases/latest');
-    if (!response.ok) return;
-    
-    const data = await response.json();
-    const tagName = data.tag_name; // e.g. "v0.3.0"
-    const remoteVersion = tagName.replace(/^v/, '');
-    
-    if (compareVersions(current, remoteVersion) < 0) {
-      latestVersion.value = remoteVersion;
-      releaseUrl.value = data.html_url;
+    update = await check();
+    if (update) {
+      latestVersion.value = update.version;
       updateAvailable.value = true;
     }
   } catch (e) {
@@ -29,21 +23,16 @@ async function checkUpdate() {
   }
 }
 
-function compareVersions(a: string, b: string) {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) {
-    const na = pa[i] || 0;
-    const nb = pb[i] || 0;
-    if (na > nb) return 1;
-    if (nb > na) return -1;
-  }
-  return 0;
-}
-
-function openRelease() {
-  if (releaseUrl.value) {
-    openUrl(releaseUrl.value);
+async function startUpdate() {
+  if (update) {
+    try {
+      updating.value = true;
+      await update.downloadAndInstall();
+      await relaunch();
+    } catch (e) {
+      console.error('Update install failed', e);
+      updating.value = false;
+    }
   }
 }
 
@@ -57,7 +46,9 @@ onMounted(() => {
     <span>
       {{ t('update.available', { version: latestVersion }) }}
     </span>
-    <button @click="openRelease">{{ t('update.view') }}</button>
+    <button @click="startUpdate" :disabled="updating">
+      {{ updating ? t('market.updating') : t('update.install') }}
+    </button>
     <button class="close" @click="updateAvailable = false">×</button>
   </div>
 </template>
@@ -96,7 +87,12 @@ onMounted(() => {
   transition: background 0.2s;
 }
 
-.update-banner button:hover {
+.update-banner button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.update-banner button:hover:not(:disabled) {
   filter: brightness(1.1);
 }
 

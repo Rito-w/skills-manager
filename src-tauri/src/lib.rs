@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::io::{Cursor, Read};
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use walkdir::WalkDir;
 use zip::ZipArchive;
-use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -227,6 +227,7 @@ fn build_github_source_url(owner: &str, repo: &str) -> String {
     format!("https://github.com/{}/{}", owner, repo)
 }
 
+#[allow(dead_code)]
 fn parse_agent_skills_index(
     buf: &[u8],
     market_id: &str,
@@ -259,7 +260,13 @@ fn parse_agent_skills_index(
             let repo = get_value_string(item, &["github_repo", "githubRepo", "repo"]);
             let source_url = get_value_string(
                 item,
-                &["sourceUrl", "source_url", "githubUrl", "github_url", "html_url"],
+                &[
+                    "sourceUrl",
+                    "source_url",
+                    "githubUrl",
+                    "github_url",
+                    "html_url",
+                ],
             )
             .or_else(|| match (owner.as_deref(), repo.as_deref()) {
                 (Some(o), Some(r)) => Some(build_github_source_url(o, r)),
@@ -270,16 +277,18 @@ fn parse_agent_skills_index(
             let name = get_value_string(item, &["name", "title"])
                 .or_else(|| repo.clone())
                 .unwrap_or_else(|| "skill".to_string());
-            let description = get_value_string(item, &["description", "summary"]).unwrap_or_default();
-            let author = get_value_string(item, &["author", "owner", "github_owner", "githubOwner"])
-                .unwrap_or_default();
+            let description =
+                get_value_string(item, &["description", "summary"]).unwrap_or_default();
+            let author =
+                get_value_string(item, &["author", "owner", "github_owner", "githubOwner"])
+                    .unwrap_or_default();
             let namespace = get_value_string(item, &["namespace"])
                 .or_else(|| owner.clone())
                 .unwrap_or_default();
-            let installs = get_value_u64(item, &["installs", "downloads", "download_count"])
-                .unwrap_or(0);
-            let stars = get_value_u64(item, &["stars", "stargazers_count", "github_stars"])
-                .unwrap_or(0);
+            let installs =
+                get_value_u64(item, &["installs", "downloads", "download_count"]).unwrap_or(0);
+            let stars =
+                get_value_u64(item, &["stars", "stargazers_count", "github_stars"]).unwrap_or(0);
             let raw_id = get_value_string(item, &["id", "slug"])
                 .or_else(|| match (owner.as_deref(), repo.as_deref()) {
                     (Some(o), Some(r)) => Some(format!("{}/{}", o, r)),
@@ -337,16 +346,15 @@ fn parse_skillsllm(
             let name = get_value_string(item, &["name", "title"])
                 .or_else(|| github_repo.clone())
                 .unwrap_or_else(|| "skill".to_string());
-            let description = get_value_string(item, &["description", "summary"]).unwrap_or_default();
+            let description =
+                get_value_string(item, &["description", "summary"]).unwrap_or_default();
             let author = get_value_string(item, &["githubOwner", "github_owner", "author"])
                 .unwrap_or_default();
             let namespace = get_value_string(item, &["namespace"])
                 .or_else(|| github_owner.clone())
                 .unwrap_or_default();
-            let stars = get_value_u64(item, &["stars", "githubStars", "github_stars"])
-                .unwrap_or(0);
-            let installs = get_value_u64(item, &["installs", "downloads"])
-                .unwrap_or(0);
+            let stars = get_value_u64(item, &["stars", "githubStars", "github_stars"]).unwrap_or(0);
+            let installs = get_value_u64(item, &["installs", "downloads"]).unwrap_or(0);
             let raw_id = get_value_string(item, &["id", "slug"])
                 .or_else(|| match (github_owner.as_deref(), github_repo.as_deref()) {
                     (Some(o), Some(r)) => Some(format!("{}/{}", o, r)),
@@ -395,21 +403,18 @@ fn parse_skillsmp(
         for item in items {
             let source_url = get_value_string(item, &["githubUrl", "sourceUrl", "source_url"])
                 .unwrap_or_default();
-            
-            // Extract owner from author field
-            let author = get_value_string(item, &["author"])
-                .unwrap_or_default();
 
-            let name = get_value_string(item, &["name", "title"])
-                .unwrap_or_else(|| "skill".to_string());
-            let description = get_value_string(item, &["description", "summary"]).unwrap_or_default();
+            // Extract owner from author field
+            let author = get_value_string(item, &["author"]).unwrap_or_default();
+
+            let name =
+                get_value_string(item, &["name", "title"]).unwrap_or_else(|| "skill".to_string());
+            let description =
+                get_value_string(item, &["description", "summary"]).unwrap_or_default();
             let namespace = author.clone();
-            let stars = get_value_u64(item, &["stars", "githubStars", "github_stars"])
-                .unwrap_or(0);
-            let installs = get_value_u64(item, &["installs", "downloads"])
-                .unwrap_or(0);
-            let raw_id = get_value_string(item, &["id", "slug"])
-                .unwrap_or_else(|| name.clone());
+            let stars = get_value_u64(item, &["stars", "githubStars", "github_stars"]).unwrap_or(0);
+            let installs = get_value_u64(item, &["installs", "downloads"]).unwrap_or(0);
+            let raw_id = get_value_string(item, &["id", "slug"]).unwrap_or_else(|| name.clone());
 
             skills.push(RemoteSkillView {
                 id: format!("{}:{}", market_id, raw_id),
@@ -585,7 +590,10 @@ fn resolve_canonical(path: &Path) -> Option<PathBuf> {
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
     for entry in WalkDir::new(src) {
         let entry = entry.map_err(|err| err.to_string())?;
-        let rel_path = entry.path().strip_prefix(src).map_err(|err| err.to_string())?;
+        let rel_path = entry
+            .path()
+            .strip_prefix(src)
+            .map_err(|err| err.to_string())?;
         let target = dst.join(rel_path);
         if entry.file_type().is_dir() {
             fs::create_dir_all(&target).map_err(|err| err.to_string())?;
@@ -677,7 +685,7 @@ fn search_marketplaces(
     // --- Claude Plugins ---
     let claude_market_id = "claude-plugins";
     let claude_market_label = "Claude Plugins";
-    
+
     // Check if market is enabled
     if *enabled_markets.get(claude_market_id).unwrap_or(&true) {
         let mut url = String::from("https://claude-plugins.dev/api/skills?");
@@ -686,20 +694,20 @@ fn search_marketplaces(
             url.push('&');
         }
         url.push_str(&format!("limit={}&offset={}", limit, offset));
-        
+
         match download_bytes(
             &url,
-            &[("Accept", "application/json"), ("User-Agent", "skills-manager-gui/0.1")],
+            &[
+                ("Accept", "application/json"),
+                ("User-Agent", "skills-manager-gui/0.1"),
+            ],
         ) {
             Ok(buf) => {
                 if let Ok(parsed) = serde_json::from_slice::<RemoteSkillsResponse>(&buf) {
                     total += parsed.total;
-                    skills.extend(
-                        parsed
-                            .skills
-                            .into_iter()
-                            .map(|skill| map_claude_skill(skill, claude_market_id, claude_market_label)),
-                    );
+                    skills.extend(parsed.skills.into_iter().map(|skill| {
+                        map_claude_skill(skill, claude_market_id, claude_market_label)
+                    }));
                     market_statuses.push(MarketStatus {
                         id: claude_market_id.to_string(),
                         name: claude_market_label.to_string(),
@@ -707,7 +715,7 @@ fn search_marketplaces(
                         error: None,
                     });
                 } else {
-                     market_statuses.push(MarketStatus {
+                    market_statuses.push(MarketStatus {
                         id: claude_market_id.to_string(),
                         name: claude_market_label.to_string(),
                         status: "error".to_string(),
@@ -736,7 +744,7 @@ fn search_marketplaces(
     // --- SkillsLLM ---
     let skillsllm_market_id = "skillsllm";
     let skillsllm_market_label = "SkillsLLM";
-    
+
     // Check if market is enabled
     if *enabled_markets.get(skillsllm_market_id).unwrap_or(&true) {
         let skillsllm_page = (offset / limit).saturating_add(1);
@@ -746,13 +754,18 @@ fn search_marketplaces(
             skillsllm_url.push_str(&format!("search={}&", urlencoding::encode(trimmed)));
         }
         skillsllm_url.push_str(&format!("page={}&limit={}", skillsllm_page, limit));
-        
+
         match download_bytes(
             &skillsllm_url,
-            &[("Accept", "application/json"), ("User-Agent", "skills-manager-gui/0.1")],
+            &[
+                ("Accept", "application/json"),
+                ("User-Agent", "skills-manager-gui/0.1"),
+            ],
         ) {
             Ok(buf) => {
-                if let Ok((parsed_skills, parsed_total)) = parse_skillsllm(&buf, skillsllm_market_id, skillsllm_market_label) {
+                if let Ok((parsed_skills, parsed_total)) =
+                    parse_skillsllm(&buf, skillsllm_market_id, skillsllm_market_label)
+                {
                     total += parsed_total;
                     skills.extend(parsed_skills);
                     market_statuses.push(MarketStatus {
@@ -792,23 +805,23 @@ fn search_marketplaces(
     // --- SkillsMP (requires API Key) ---
     let skillsmp_market_id = "skillsmp";
     let skillsmp_market_label = "SkillsMP";
-    
+
     // Check if market is enabled AND API key is provided
     if *enabled_markets.get(skillsmp_market_id).unwrap_or(&false) {
         if let Some(api_key) = api_keys.get(skillsmp_market_id).filter(|k| !k.is_empty()) {
             let skillsmp_page = (offset / limit).saturating_add(1);
             // Correct API endpoint: /api/v1/skills/search
             // Note: q parameter is REQUIRED by SkillsMP API
-            let mut skillsmp_url = format!(
+            let skillsmp_url = format!(
                 "https://skillsmp.com/api/v1/skills/search?q={}&page={}&limit={}",
                 urlencoding::encode(trimmed),
                 skillsmp_page,
                 limit
             );
-            
+
             // Use Authorization: Bearer header
             let auth_header = format!("Bearer {}", api_key);
-            
+
             match download_bytes(
                 &skillsmp_url,
                 &[
@@ -818,7 +831,9 @@ fn search_marketplaces(
                 ],
             ) {
                 Ok(buf) => {
-                    if let Ok((parsed_skills, parsed_total)) = parse_skillsmp(&buf, skillsmp_market_id, skillsmp_market_label) {
+                    if let Ok((parsed_skills, parsed_total)) =
+                        parse_skillsmp(&buf, skillsmp_market_id, skillsmp_market_label)
+                    {
                         total += parsed_total;
                         skills.extend(parsed_skills);
                         market_statuses.push(MarketStatus {
@@ -881,8 +896,12 @@ fn download_marketplace_skill(request: DownloadRequest) -> Result<DownloadResult
     }
 
     let install_base_dir = PathBuf::from(&request.install_base_dir);
-    let target_dir =
-        download_skill_to_dir(&request.source_url, &request.skill_name, &install_base_dir, false)?;
+    let target_dir = download_skill_to_dir(
+        &request.source_url,
+        &request.skill_name,
+        &install_base_dir,
+        false,
+    )?;
 
     Ok(DownloadResult {
         installed_path: target_dir.display().to_string(),
@@ -896,8 +915,12 @@ fn update_marketplace_skill(request: DownloadRequest) -> Result<DownloadResult, 
     }
 
     let install_base_dir = PathBuf::from(&request.install_base_dir);
-    let target_dir =
-        download_skill_to_dir(&request.source_url, &request.skill_name, &install_base_dir, true)?;
+    let target_dir = download_skill_to_dir(
+        &request.source_url,
+        &request.skill_name,
+        &install_base_dir,
+        true,
+    )?;
 
     Ok(DownloadResult {
         installed_path: target_dir.display().to_string(),
@@ -970,7 +993,9 @@ fn collect_skills_from_dir(base: &Path, source: &str, ide: Option<&str>) -> Vec<
         if !entry.file_type().is_file() || entry.file_name() != "SKILL.md" {
             continue;
         }
-        let Some(skill_dir) = entry.path().parent() else { continue };
+        let Some(skill_dir) = entry.path().parent() else {
+            continue;
+        };
         let (name, description) = read_skill_metadata(skill_dir);
         let path = skill_dir.to_path_buf();
         skills.push(LocalSkill {
@@ -1026,14 +1051,24 @@ fn scan_overview(request: LocalScanRequest) -> Result<Overview, String> {
 
     for (label, rel) in &ide_dirs {
         let dir = home.join(rel);
-        ide_skills.extend(collect_ide_skills(&dir, label, &manager_map, &mut manager_skills));
+        ide_skills.extend(collect_ide_skills(
+            &dir,
+            label,
+            &manager_map,
+            &mut manager_skills,
+        ));
     }
 
     if let Some(project) = request.project_dir {
         let base = PathBuf::from(project);
         for (label, rel) in &ide_dirs {
             let dir = base.join(rel);
-            ide_skills.extend(collect_ide_skills(&dir, label, &manager_map, &mut manager_skills));
+            ide_skills.extend(collect_ide_skills(
+                &dir,
+                label,
+                &manager_map,
+                &mut manager_skills,
+            ));
         }
     }
 
@@ -1156,7 +1191,11 @@ fn uninstall_skill(request: UninstallRequest) -> Result<String, String> {
 
     let metadata = fs::symlink_metadata(&target).map_err(|err| err.to_string())?;
     if metadata.file_type().is_symlink() {
-        fs::remove_file(&target).map_err(|err| err.to_string())?;
+        if target.is_dir() {
+            fs::remove_dir(&target).map_err(|err| err.to_string())?;
+        } else {
+            fs::remove_file(&target).map_err(|err| err.to_string())?;
+        }
         return Ok("已移除链接".to_string());
     }
 
@@ -1174,7 +1213,7 @@ struct ImportRequest {
 fn import_local_skill(request: ImportRequest) -> Result<String, String> {
     let home = dirs::home_dir().ok_or("无法获取用户目录")?;
     let manager_dir = home.join(".skills-manager/skills");
-    
+
     let source_path = PathBuf::from(&request.source_path);
     if !source_path.exists() {
         return Err("源路径不存在".to_string());
@@ -1183,24 +1222,26 @@ fn import_local_skill(request: ImportRequest) -> Result<String, String> {
     if !source_path.join("SKILL.md").exists() {
         return Err("该目录下缺少 SKILL.md 文件，不是有效的 Skill".to_string());
     }
-    
+
     let (name, _) = read_skill_metadata(&source_path);
     let safe_name = sanitize_dir_name(&name);
     let target_dir = manager_dir.join(&safe_name);
-    
+
     if target_dir.exists() {
         return Err(format!("目标 Skill 已存在: {}", safe_name));
     }
-    
+
     fs::create_dir_all(&target_dir).map_err(|err| err.to_string())?;
     copy_dir_recursive(&source_path, &target_dir)?;
-    
+
     Ok(format!("已导入 Skill: {}", name))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![

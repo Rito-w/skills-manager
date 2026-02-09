@@ -3,4 +3,5 @@ node_modules
 /dist
 /src-tauri/target
 /references
-/other
+/others
+skills-manager.key
