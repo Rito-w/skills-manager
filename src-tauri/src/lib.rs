@@ -1021,7 +1021,7 @@ fn scan_overview(request: LocalScanRequest) -> Result<Overview, String> {
 
     let ide_dirs = if request.ide_dirs.is_empty() {
         vec![
-            ("Antigravity".to_string(), ".agent/skills".to_string()),
+            ("Antigravity".to_string(), ".gemini/antigravity/skills".to_string()),
             ("Claude".to_string(), ".claude/skills".to_string()),
             ("CodeBuddy".to_string(), ".codebuddy/skills".to_string()),
             ("Codex".to_string(), ".codex/skills".to_string()),
@@ -1142,7 +1142,7 @@ fn uninstall_skill(request: UninstallRequest) -> Result<String, String> {
 
     let ide_dirs = if request.ide_dirs.is_empty() {
         vec![
-            ".agent/skills".to_string(),
+            ".gemini/antigravity/skills".to_string(),
             ".claude/skills".to_string(),
             ".codebuddy/skills".to_string(),
             ".codex/skills".to_string(),
