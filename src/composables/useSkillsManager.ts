@@ -1,4 +1,4 @@
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { homeDir, join } from "@tauri-apps/api/path";
@@ -167,6 +167,14 @@ export function useSkillsManager() {
   // Download Queue
   const downloadQueue = ref<DownloadTask[]>([]);
   let isProcessingQueue = false;
+
+  // Timer tracking for cleanup
+  const timers: number[] = [];
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    timers.forEach((id) => clearTimeout(id));
+  });
 
   const ideOptions = ref<IdeOption[]>([]);
   const selectedIdeFilter = ref("Antigravity");
@@ -398,10 +406,11 @@ export function useSkillsManager() {
         });
         task.status = 'done';
         // Remove completed task after a short delay
-        setTimeout(() => {
+        const timerId = window.setTimeout(() => {
           downloadQueue.value = downloadQueue.value.filter(t => t.id !== task.id);
-          scanLocalSkills();
+          void scanLocalSkills(); // Properly handle async
         }, 1500);
+        timers.push(timerId);
       } catch (err) {
         task.status = 'error';
         task.error = err instanceof Error ? err.message : String(err);

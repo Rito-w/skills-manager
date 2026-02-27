@@ -166,7 +166,10 @@ fn sanitize_dir_name(name: &str) -> String {
 }
 
 fn download_bytes(url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>, String> {
-    let agent = ureq::AgentBuilder::new().redirects(5).build();
+    let agent = ureq::AgentBuilder::new()
+        .redirects(5)
+        .timeout(std::time::Duration::from_secs(60))
+        .build();
     let mut request = agent.get(url);
     for (key, value) in headers {
         request = request.set(*key, *value);
@@ -491,12 +494,40 @@ fn extract_zip(buf: &[u8], extract_dir: &Path) -> Result<(), String> {
     let cursor = Cursor::new(buf);
     let mut zip = ZipArchive::new(cursor).map_err(|err| err.to_string())?;
 
+    // 获取目标目录的规范路径，用于防止 Zip Slip 攻击
+    let canonical_extract = extract_dir
+        .canonicalize()
+        .map_err(|err| format!("Failed to canonicalize extract dir: {}", err))?;
+
     for i in 0..zip.len() {
         let mut file = zip.by_index(i).map_err(|err| err.to_string())?;
         let Some(enclosed) = file.enclosed_name() else {
             continue;
         };
-        let out_path = extract_dir.join(enclosed);
+        let out_path = extract_dir.join(&enclosed);
+
+        // 防止 Zip Slip 攻击：验证输出路径在目标目录内
+        // 使用路径规范化检查，而不是 canonicalize（因为文件可能还不存在）
+        let out_path_normalized = out_path
+            .components()
+            .fold(PathBuf::new(), |mut acc, part| {
+                if part == std::path::Component::ParentDir {
+                    acc.pop();
+                } else if part != std::path::Component::CurDir {
+                    acc.push(part);
+                }
+                acc
+            });
+
+        // 确保规范化后的路径以 extract_dir 开头
+        if !out_path_normalized.starts_with(&canonical_extract) && !out_path_normalized.starts_with(extract_dir) {
+            return Err(format!(
+                "Zip Slip attack detected: {} attempts to write outside of {}",
+                enclosed.display(),
+                extract_dir.display()
+            ));
+        }
+
         if file.is_dir() {
             fs::create_dir_all(&out_path).map_err(|err| err.to_string())?;
             continue;
@@ -646,6 +677,23 @@ fn is_safe_relative_dir(rel: &str) -> bool {
 #[cfg(target_family = "windows")]
 fn create_junction_dir(target: &Path, link: &Path) -> Result<(), String> {
     use std::process::Command;
+
+    // 验证路径不包含可能导致问题的特殊字符
+    fn validate_path(path: &Path) -> Result<(), String> {
+        let path_str = path.to_string_lossy();
+        // 检查是否包含可能导致命令注入的字符
+        let dangerous_chars = ['&', '|', '^', '<', '>', '(', ')', '%', '!', '"'];
+        for ch in dangerous_chars {
+            if path_str.contains(ch) {
+                return Err(format!("Path contains dangerous character: '{}'", ch));
+            }
+        }
+        Ok(())
+    }
+
+    validate_path(target)?;
+    validate_path(link)?;
+
     let status = Command::new("cmd")
         .args([
             "/C",
