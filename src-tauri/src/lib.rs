@@ -149,6 +149,20 @@ struct IdeDir {
     relative_dir: String,
 }
 
+fn normalize_path(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for comp in path.components() {
+        match comp {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            _ => normalized.push(comp),
+        }
+    }
+    normalized
+}
+
 fn sanitize_dir_name(name: &str) -> String {
     let mut out = String::new();
     for ch in name.chars() {
@@ -450,6 +464,13 @@ fn download_skill_to_dir(
     install_base_dir: &Path,
     overwrite: bool,
 ) -> Result<PathBuf, String> {
+    let home = dirs::home_dir().ok_or("无法获取用户目录")?;
+    let allowed_base = normalize_path(&home.join(".skills-manager/skills"));
+    let requested_base = normalize_path(install_base_dir);
+    if !requested_base.starts_with(&allowed_base) {
+        return Err("安装目录不在允许范围内".to_string());
+    }
+
     fs::create_dir_all(install_base_dir).map_err(|err| err.to_string())?;
 
     let safe_name = sanitize_dir_name(skill_name);
@@ -508,19 +529,19 @@ fn extract_zip(buf: &[u8], extract_dir: &Path) -> Result<(), String> {
 
         // 防止 Zip Slip 攻击：验证输出路径在目标目录内
         // 使用路径规范化检查，而不是 canonicalize（因为文件可能还不存在）
-        let out_path_normalized = out_path
-            .components()
-            .fold(PathBuf::new(), |mut acc, part| {
-                if part == std::path::Component::ParentDir {
-                    acc.pop();
-                } else if part != std::path::Component::CurDir {
-                    acc.push(part);
-                }
-                acc
-            });
+        let out_path_normalized = out_path.components().fold(PathBuf::new(), |mut acc, part| {
+            if part == std::path::Component::ParentDir {
+                acc.pop();
+            } else if part != std::path::Component::CurDir {
+                acc.push(part);
+            }
+            acc
+        });
 
         // 确保规范化后的路径以 extract_dir 开头
-        if !out_path_normalized.starts_with(&canonical_extract) && !out_path_normalized.starts_with(extract_dir) {
+        if !out_path_normalized.starts_with(&canonical_extract)
+            && !out_path_normalized.starts_with(extract_dir)
+        {
             return Err(format!(
                 "Zip Slip attack detected: {} attempts to write outside of {}",
                 enclosed.display(),
@@ -621,12 +642,19 @@ fn resolve_canonical(path: &Path) -> Option<PathBuf> {
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
     for entry in WalkDir::new(src) {
         let entry = entry.map_err(|err| err.to_string())?;
+        let file_type = entry.file_type();
+        if file_type.is_symlink() {
+            return Err(format!(
+                "检测到符号链接，已拒绝复制: {}",
+                entry.path().display()
+            ));
+        }
         let rel_path = entry
             .path()
             .strip_prefix(src)
             .map_err(|err| err.to_string())?;
         let target = dst.join(rel_path);
-        if entry.file_type().is_dir() {
+        if file_type.is_dir() {
             fs::create_dir_all(&target).map_err(|err| err.to_string())?;
         } else {
             if let Some(parent) = target.parent() {
@@ -681,8 +709,8 @@ fn create_junction_dir(target: &Path, link: &Path) -> Result<(), String> {
     // 验证路径不包含可能导致问题的特殊字符
     fn validate_path(path: &Path) -> Result<(), String> {
         let path_str = path.to_string_lossy();
-        // 检查是否包含可能导致命令注入的字符
-        let dangerous_chars = ['&', '|', '^', '<', '>', '(', ')', '%', '!', '"'];
+        // 检查是否包含可能导致命令注入的字符 (移除了 '(', ')', '&' 以兼容常见 Windows 路径如 'Program Files (x86)' 和 'A & B')
+        let dangerous_chars = ['|', '^', '<', '>', '%', '!', '"'];
         for ch in dangerous_chars {
             if path_str.contains(ch) {
                 return Err(format!("Path contains dangerous character: '{}'", ch));
@@ -983,10 +1011,17 @@ async fn update_marketplace_skill(request: DownloadRequest) -> Result<DownloadRe
 
 #[tauri::command]
 fn link_local_skill(request: LinkRequest) -> Result<InstallResult, String> {
+    let home = dirs::home_dir().ok_or("无法获取用户目录")?;
+    let normalized_home = normalize_path(&home);
+
     let skill_path = PathBuf::from(&request.skill_path);
-    if !skill_path.exists() {
-        return Err("本地 skill 路径不存在".to_string());
+    let skill_canon =
+        fs::canonicalize(&skill_path).map_err(|_| "本地 skill 路径不存在".to_string())?;
+    if !skill_canon.starts_with(&normalized_home) {
+        return Err("本地 skill 路径必须位于用户目录下".to_string());
     }
+    let skill_path = skill_canon;
+
     let safe_name = sanitize_dir_name(&request.skill_name);
 
     let mut linked = Vec::new();
@@ -994,6 +1029,11 @@ fn link_local_skill(request: LinkRequest) -> Result<InstallResult, String> {
 
     for target in request.link_targets {
         let target_base = PathBuf::from(&target.path);
+        let normalized_target = normalize_path(&target_base);
+        if !normalized_target.starts_with(&normalized_home) {
+            return Err(format!("目标目录超出用户目录: {}", target.name));
+        }
+
         fs::create_dir_all(&target_base).map_err(|err| err.to_string())?;
         let link_path = target_base.join(&safe_name);
 
@@ -1075,7 +1115,10 @@ fn scan_overview(request: LocalScanRequest) -> Result<Overview, String> {
 
     let ide_dirs = if request.ide_dirs.is_empty() {
         vec![
-            ("Antigravity".to_string(), ".gemini/antigravity/skills".to_string()),
+            (
+                "Antigravity".to_string(),
+                ".gemini/antigravity/skills".to_string(),
+            ),
             ("Claude".to_string(), ".claude/skills".to_string()),
             ("CodeBuddy".to_string(), ".codebuddy/skills".to_string()),
             ("Codex".to_string(), ".codex/skills".to_string()),

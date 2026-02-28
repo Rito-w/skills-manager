@@ -89,6 +89,16 @@ const ideKey = "skillsManager.ideOptions";
 const installTargetKey = "skillsManager.lastInstallTargets";
 const marketConfigsKey = "skillsManager.marketConfigs";
 
+function isSafeRelativePath(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("/") || /^[A-Za-z]:/i.test(trimmed) || trimmed.startsWith("\\")) {
+    return false;
+  }
+  const parts = trimmed.split(/[\\/]+/);
+  return parts.every((part) => part !== ".." && part !== "");
+}
+
 function loadIdeOptions(): IdeOption[] {
   try {
     const raw = localStorage.getItem(ideKey);
@@ -99,7 +109,8 @@ function loadIdeOptions(): IdeOption[] {
       (item) =>
         item &&
         typeof item.label === "string" &&
-        typeof item.globalDir === "string"
+        typeof item.globalDir === "string" &&
+        isSafeRelativePath(item.globalDir)
     );
     return [...defaultIdeOptions, ...custom].sort((a, b) => a.label.localeCompare(b.label));
   } catch {
@@ -253,6 +264,10 @@ export function useSkillsManager() {
       toast.error(t("errors.fillIde"));
       return;
     }
+    if (!isSafeRelativePath(dir)) {
+      toast.error(t("errors.invalidPath"));
+      return;
+    }
     const normalizedName = name.toLowerCase();
     if (ideOptions.value.some((item) => item.label.toLowerCase() === normalizedName)) {
       toast.error(t("errors.ideExists"));
@@ -290,7 +305,7 @@ export function useSkillsManager() {
   async function buildLinkTargets(targetLabel: string): Promise<LinkTarget[]> {
     const home = await homeDir();
     const target = ideOptions.value.find((option) => option.label === targetLabel);
-    if (!target) return [];
+    if (!target || !isSafeRelativePath(target.globalDir)) return [];
     return [
       {
         name: target.label,
@@ -409,6 +424,9 @@ export function useSkillsManager() {
         const timerId = window.setTimeout(() => {
           downloadQueue.value = downloadQueue.value.filter(t => t.id !== task.id);
           void scanLocalSkills(); // Properly handle async
+          // Clean up timer to prevent memory leaks
+          const index = timers.indexOf(timerId);
+          if (index > -1) timers.splice(index, 1);
         }, 1500);
         timers.push(timerId);
       } catch (err) {
