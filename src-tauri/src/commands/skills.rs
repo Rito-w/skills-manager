@@ -226,7 +226,12 @@ pub fn link_local_skill(request: LinkRequest) -> Result<InstallResult, String> {
         let target_base = PathBuf::from(&target.path);
         let normalized_target = normalize_path(&target_base);
         if !normalized_target.starts_with(&normalized_home) {
-            return Err(format!("目标目录超出用户目录: {}", target.name));
+            return Err(format!("目标目录超出用户目录：{}", target.name));
+        }
+        // 对每个目标路径进行符号链接攻击防护验证
+        let target_canon = fs::canonicalize(&target_base).unwrap_or_else(|_| normalized_target.clone());
+        if !target_canon.starts_with(&normalized_home) {
+            return Err(format!("目标目录存在符号链接攻击风险：{}", target.name));
         }
 
         fs::create_dir_all(&target_base).map_err(|err| err.to_string())?;
@@ -424,7 +429,7 @@ pub fn import_local_skill(request: ImportRequest) -> Result<String, String> {
     let target_dir = manager_dir.join(&safe_name);
 
     if target_dir.exists() {
-        return Err(format!("目标 Skill 已存在: {}", safe_name));
+        return Err(format!("目标 Skill 已存在：{}", safe_name));
     }
 
     fs::create_dir_all(&target_dir).map_err(|err| err.to_string())?;
