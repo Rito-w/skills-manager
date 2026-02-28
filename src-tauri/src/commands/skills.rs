@@ -22,7 +22,7 @@ fn read_skill_metadata(skill_dir: &Path) -> (String, String) {
     }
 
     let content = fs::read_to_string(&skill_file).unwrap_or_default();
-    let mut lines = content.lines();
+    let lines = content.lines();
 
     let mut frontmatter_name: Option<String> = None;
     let mut description = String::new();
