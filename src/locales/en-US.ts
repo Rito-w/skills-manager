@@ -94,7 +94,8 @@ export default {
     scanFailed: "Failed to scan local skills.",
     installFailed: "Installation failed.",
     uninstallFailed: "Uninstallation failed.",
-    importFailed: "Import failed."
+    importFailed: "Import failed.",
+    invalidPath: "Path must be a relative path under your home directory."
   },
   update: {
     available: "New version available: {version}",

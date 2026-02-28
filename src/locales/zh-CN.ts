@@ -94,7 +94,8 @@ export default {
     fillIde: "请填写编辑器名称和目录。",
     ideExists: "IDE 名称已存在",
     selectValidIde: "请选择有效的 IDE",
-    selectAtLeastOne: "请选择至少一个 IDE"
+    selectAtLeastOne: "请选择至少一个 IDE",
+    invalidPath: "目录必须是用户目录下的相对路径。"
   },
   update: {
     available: "发现新版本: {version}",
