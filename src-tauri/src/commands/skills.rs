@@ -28,7 +28,7 @@ fn read_skill_metadata(skill_dir: &Path) -> (String, String) {
     let mut description = String::new();
 
     let mut in_frontmatter = false;
-    while let Some(line) = lines.next() {
+    for line in lines {
         let trimmed = line.trim();
         if trimmed == "---" {
             if !in_frontmatter {

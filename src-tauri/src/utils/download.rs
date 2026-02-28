@@ -14,7 +14,7 @@ pub fn download_bytes(url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>, St
         .build();
     let mut request = agent.get(url);
     for (key, value) in headers {
-        request = request.set(*key, *value);
+        request = request.set(key, value);
     }
 
     let response = request.call().map_err(|err| err.to_string())?;
@@ -86,6 +86,7 @@ impl<'a> TempDirGuard<'a> {
         Self { path, armed: true }
     }
 
+    #[allow(dead_code)]
     fn disarm(mut self) {
         self.armed = false;
     }

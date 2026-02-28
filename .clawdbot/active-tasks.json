@@ -1,0 +1,9 @@
+{
+  "tasks": [],
+  "config": {
+    "project": "skills-manager",
+    "worktreeBase": "/tmp/skills-manager-worktrees",
+    "maxConcurrentAgents": 4,
+    "defaultBranch": "main"
+  }
+}
