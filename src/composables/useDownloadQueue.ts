@@ -71,6 +71,13 @@ export function useDownloadQueue(callbacks: DownloadQueueCallbacks = {}) {
       } catch (err) {
         task.status = "error";
         task.error = err instanceof Error ? err.message : String(err);
+        // 在 error 分支也清理 timer，防止内存泄漏
+        const timerId = window.setTimeout(() => {
+          downloadQueue.value = downloadQueue.value.filter((t) => t.id !== task.id);
+          const index = timers.indexOf(timerId);
+          if (index > -1) timers.splice(index, 1);
+        }, 3000);
+        timers.push(timerId);
       }
     }
 
