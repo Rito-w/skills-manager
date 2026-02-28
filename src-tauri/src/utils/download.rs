@@ -65,18 +65,38 @@ pub fn download_skill_to_dir(
     let extract_dir = temp_dir.join("extract");
     fs::create_dir_all(&extract_dir).map_err(|err| err.to_string())?;
 
-    let result = (|| -> Result<PathBuf, String> {
-        extract_zip(&zip_buf, &extract_dir)?;
-        let selected_root = find_skill_root(&extract_dir, &safe_name)?;
-        copy_dir_recursive(&selected_root, &target_dir)?;
-        Ok(target_dir)
-    })();
+    // 使用 defer 模式确保 temp 目录总是被清理
+    let _temp_dir_guard = TempDirGuard::new(&temp_dir);
 
-    if temp_dir.exists() {
-        fs::remove_dir_all(&temp_dir).map_err(|err| err.to_string())?;
+    extract_zip(&zip_buf, &extract_dir)?;
+    let selected_root = find_skill_root(&extract_dir, &safe_name)?;
+    copy_dir_recursive(&selected_root, &target_dir)?;
+
+    Ok(target_dir)
+}
+
+/// RAII guard for automatic temp directory cleanup
+struct TempDirGuard<'a> {
+    path: &'a Path,
+    armed: bool,
+}
+
+impl<'a> TempDirGuard<'a> {
+    fn new(path: &'a Path) -> Self {
+        Self { path, armed: true }
     }
 
-    result
+    fn disarm(mut self) {
+        self.armed = false;
+    }
+}
+
+impl<'a> Drop for TempDirGuard<'a> {
+    fn drop(&mut self) {
+        if self.armed {
+            let _ = fs::remove_dir_all(self.path);
+        }
+    }
 }
 
 pub fn extract_zip(buf: &[u8], extract_dir: &Path) -> Result<(), String> {
