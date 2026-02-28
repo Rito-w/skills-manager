@@ -27,8 +27,8 @@ export function useDownloadQueue(callbacks: DownloadQueueCallbacks = {}) {
   }
 
   function addToDownloadQueue(skill: RemoteSkill) {
-    // Check if already in queue
-    if (downloadQueue.value.some((t) => t.id === skill.id)) {
+    // Check if already in queue (including active downloading tasks)
+    if (downloadQueue.value.some((t) => t.id === skill.id && (t.status === "pending" || t.status === "downloading"))) {
       return;
     }
     downloadQueue.value.push({
