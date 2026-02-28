@@ -1,5 +1,5 @@
 use crate::types::{
-    IdeDir, IdeSkill, ImportRequest, InstallResult, LinkRequest, LocalScanRequest, LocalSkill,
+    IdeSkill, ImportRequest, InstallResult, LinkRequest, LocalScanRequest, LocalSkill,
     Overview, UninstallRequest,
 };
 use crate::utils::download::copy_dir_recursive;
