@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DownloadTask } from "../composables/useSkillsManager";
+import type { DownloadTask } from "../composables/types";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();

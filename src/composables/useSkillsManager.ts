@@ -3,91 +3,12 @@ import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { homeDir, join } from "@tauri-apps/api/path";
 import { useToast } from "./useToast";
-
-export type RemoteSkill = {
-  id: string;
-  name: string;
-  namespace: string;
-  sourceUrl: string;
-  description: string;
-  author: string;
-  installs: number;
-  stars: number;
-  marketId: string;
-  marketLabel: string;
-};
-
-export type MarketStatus = {
-  id: string;
-  name: string;
-  status: "online" | "error" | "needs_key";
-  error?: string;
-};
-
-export type InstallResult = {
-  installedPath: string;
-  linked: string[];
-  skipped: string[];
-};
-
-export type LocalSkill = {
-  id: string;
-  name: string;
-  description: string;
-  path: string;
-  source: string;
-  ide?: string;
-  usedBy: string[];
-};
-
-export type IdeSkill = {
-  id: string;
-  name: string;
-  path: string;
-  ide: string;
-  source: string;
-};
-
-export type Overview = {
-  managerSkills: LocalSkill[];
-  ideSkills: IdeSkill[];
-};
-
-export type IdeOption = {
-  id: string;
-  label: string;
-  globalDir: string;
-};
-
-type LinkTarget = {
-  name: string;
-  path: string;
-};
-
-export type DownloadTask = {
-  id: string;
-  name: string;
-  sourceUrl: string;
-  status: 'pending' | 'downloading' | 'done' | 'error';
-  error?: string;
-};
-
-const defaultIdeOptions: IdeOption[] = [
-  { id: "antigravity", label: "Antigravity", globalDir: ".gemini/antigravity/skills" },
-  { id: "claude", label: "Claude", globalDir: ".claude/skills" },
-  { id: "codebuddy", label: "CodeBuddy", globalDir: ".codebuddy/skills" },
-  { id: "codex", label: "Codex", globalDir: ".codex/skills" },
-  { id: "cursor", label: "Cursor", globalDir: ".cursor/skills" },
-  { id: "kiro", label: "Kiro", globalDir: ".kiro/skills" },
-  { id: "qoder", label: "Qoder", globalDir: ".qoder/skills" },
-  { id: "trae", label: "Trae", globalDir: ".trae/skills" },
-  { id: "vscode", label: "VSCode", globalDir: ".github/skills" },
-  { id: "windsurf", label: "Windsurf", globalDir: ".windsurf/skills" }
-];
-
-const ideKey = "skillsManager.ideOptions";
-const installTargetKey = "skillsManager.lastInstallTargets";
-const marketConfigsKey = "skillsManager.marketConfigs";
+import type {
+  RemoteSkill, MarketStatus, InstallResult, LocalSkill,
+  IdeSkill, Overview, LinkTarget, DownloadTask
+} from "./types";
+import { useIdeConfig } from "./useIdeConfig";
+import { useMarketConfig } from "./useMarketConfig";
 
 function isSafeRelativePath(input: string): boolean {
   const trimmed = input.trim();
@@ -97,45 +18,6 @@ function isSafeRelativePath(input: string): boolean {
   }
   const parts = trimmed.split(/[\\/]+/);
   return parts.every((part) => part !== ".." && part !== "");
-}
-
-function loadIdeOptions(): IdeOption[] {
-  try {
-    const raw = localStorage.getItem(ideKey);
-    if (!raw) return [...defaultIdeOptions];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [...defaultIdeOptions];
-    const custom = parsed.filter(
-      (item) =>
-        item &&
-        typeof item.label === "string" &&
-        typeof item.globalDir === "string" &&
-        isSafeRelativePath(item.globalDir)
-    );
-    return [...defaultIdeOptions, ...custom].sort((a, b) => a.label.localeCompare(b.label));
-  } catch {
-    return [...defaultIdeOptions];
-  }
-}
-
-function saveIdeOptions(custom: IdeOption[]) {
-  localStorage.setItem(ideKey, JSON.stringify(custom));
-}
-
-function loadLastInstallTargets(): string[] {
-  try {
-    const raw = localStorage.getItem(installTargetKey);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item) => typeof item === "string");
-  } catch {
-    return [];
-  }
-}
-
-function saveLastInstallTargets(labels: string[]) {
-  localStorage.setItem(installTargetKey, JSON.stringify(labels));
 }
 
 export function useSkillsManager() {
@@ -157,19 +39,6 @@ export function useSkillsManager() {
   const installingId = ref<string | null>(null);
   const updatingId = ref<string | null>(null);
 
-  const marketConfigs = ref<Record<string, string>>({});
-  // Track which markets are enabled by the user
-  const enabledMarkets = ref<Record<string, boolean>>({
-    "claude-plugins": true,
-    "skillsllm": true,
-    "skillsmp": false // Disabled by default until API key is provided
-  });
-  const marketStatuses = ref<MarketStatus[]>([
-    { id: "claude-plugins", name: "Claude Plugins", status: "online" },
-    { id: "skillsllm", name: "SkillsLLM", status: "online" },
-    { id: "skillsmp", name: "SkillsMP", status: "needs_key" }
-  ]);
-
   // Local Skills
   const localSkills = ref<LocalSkill[]>([]);
   const ideSkills = ref<IdeSkill[]>([]);
@@ -186,11 +55,6 @@ export function useSkillsManager() {
   onUnmounted(() => {
     timers.forEach((id) => clearTimeout(id));
   });
-
-  const ideOptions = ref<IdeOption[]>([]);
-  const selectedIdeFilter = ref("Antigravity");
-  const customIdeName = ref("");
-  const customIdeDir = ref("");
 
   const showInstallModal = ref(false);
   const installTargetSkill = ref<LocalSkill | null>(null);
@@ -213,90 +77,39 @@ export function useSkillsManager() {
     return set;
   });
 
+  const {
+    marketConfigs,
+    enabledMarkets,
+    marketStatuses,
+    loadMarketConfigs,
+    saveMarketConfigs
+  } = useMarketConfig();
 
+  const {
+    ideOptions,
+    selectedIdeFilter,
+    customIdeName,
+    customIdeDir,
+    customIdeOptions,
+    refreshIdeOptions,
+    addCustomIde: doAddCustomIde,
+    removeCustomIde,
+    loadLastInstallTargets,
+    saveLastInstallTargets
+  } = useIdeConfig();
+
+  function addCustomIde() {
+    const success = doAddCustomIde(t, (msg: string) => {
+      toast.error(msg);
+    });
+    if (success) {
+      void scanLocalSkills();
+    }
+  }
 
   const filteredIdeSkills = computed(() =>
     ideSkills.value.filter((skill) => skill.ide === selectedIdeFilter.value)
   );
-
-  const customIdeOptions = computed(() =>
-    ideOptions.value.filter((item) => item.id.startsWith("custom-"))
-  );
-
-  function loadMarketConfigs() {
-    const saved = localStorage.getItem(marketConfigsKey);
-    if (saved) {
-      try {
-        marketConfigs.value = JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse marketConfigs", e);
-      }
-    }
-    // Load enabled markets
-    const savedEnabled = localStorage.getItem('market-enabled');
-    if (savedEnabled) {
-      try {
-        enabledMarkets.value = JSON.parse(savedEnabled);
-      } catch (e) {
-        console.error("Failed to parse enabledMarkets", e);
-      }
-    }
-  }
-
-  function saveMarketConfigs(configs: Record<string, string>, enabled: Record<string, boolean>) {
-    marketConfigs.value = configs;
-    enabledMarkets.value = enabled;
-    localStorage.setItem(marketConfigsKey, JSON.stringify(configs));
-    localStorage.setItem('market-enabled', JSON.stringify(enabled));
-  }
-
-  function refreshIdeOptions() {
-    ideOptions.value = loadIdeOptions();
-    if (!ideOptions.value.find((item) => item.label === selectedIdeFilter.value)) {
-      selectedIdeFilter.value = ideOptions.value[0]?.label ?? "Antigravity";
-    }
-  }
-
-  function addCustomIde() {
-    const name = customIdeName.value.trim();
-    const dir = customIdeDir.value.trim();
-    if (!name || !dir) {
-      toast.error(t("errors.fillIde"));
-      return;
-    }
-    if (!isSafeRelativePath(dir)) {
-      toast.error(t("errors.invalidPath"));
-      return;
-    }
-    const normalizedName = name.toLowerCase();
-    if (ideOptions.value.some((item) => item.label.toLowerCase() === normalizedName)) {
-      toast.error(t("errors.ideExists"));
-      return;
-    }
-    const existingCustom = ideOptions.value
-      .filter((item) => !defaultIdeOptions.find((def) => def.id === item.id))
-      .filter((item) => item.label.toLowerCase() !== normalizedName);
-    const id = `custom-${name.toLowerCase().replace(/\s+/g, "-")}`;
-    const nextCustom = [...existingCustom, { id, label: name, globalDir: dir }].sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
-    saveIdeOptions(nextCustom);
-    customIdeName.value = "";
-    customIdeDir.value = "";
-    refreshIdeOptions();
-    void scanLocalSkills();
-  }
-
-  function removeCustomIde(label: string) {
-    const customOnly = ideOptions.value.filter(
-      (item) => !defaultIdeOptions.find((def) => def.id === item.id)
-    );
-    const nextCustom = customOnly.filter((item) => item.label !== label);
-    saveIdeOptions(nextCustom);
-    refreshIdeOptions();
-    void scanLocalSkills();
-  }
-
   async function buildInstallBaseDir(): Promise<string> {
     const home = await homeDir();
     return join(home, ".skills-manager/skills");

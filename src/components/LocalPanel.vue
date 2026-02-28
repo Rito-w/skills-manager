@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { LocalSkill, DownloadTask } from "../composables/useSkillsManager";
+import type { LocalSkill, DownloadTask } from "../composables/types";
 import DownloadQueue from "./DownloadQueue.vue";
 import { useI18n } from "vue-i18n";
 

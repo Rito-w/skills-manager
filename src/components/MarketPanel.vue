@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RemoteSkill, MarketStatus, DownloadTask } from "../composables/useSkillsManager";
+import type { RemoteSkill, MarketStatus, DownloadTask } from "../composables/types";
 import { useI18n } from "vue-i18n";
 import { ref, computed } from "vue";
 import MarketSettingsModal from "./MarketSettingsModal.vue";
