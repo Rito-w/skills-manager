@@ -14,6 +14,7 @@ pub struct RemoteSkill {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RemoteSkillsResponse {
     pub skills: Vec<RemoteSkill>,
     pub total: u64,
@@ -46,6 +47,7 @@ pub struct MarketStatus {
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RemoteSkillsViewResponse {
     pub skills: Vec<RemoteSkillView>,
     pub total: u64,
