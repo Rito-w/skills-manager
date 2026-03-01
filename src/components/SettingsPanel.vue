@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { getName, getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { i18n, supportedLocales, type SupportedLocale } from "../i18n";
+import { useUpdateStore } from "../composables/useUpdateStore";
 
 const { t } = useI18n();
 
@@ -16,20 +14,23 @@ const localeKey = "skillsManager.locale";
 const theme = ref<ThemeMode>("system");
 const locale = ref<SupportedLocale>("zh-CN");
 
-// App info
-const appName = ref("Skills Manager");
-const currentVersion = ref("");
-
-// Update state
-const checking = ref(false);
-const updateAvailable = ref(false);
-const latestVersion = ref("");
-const downloading = ref(false);
-const downloadProgress = ref(0);
-const downloaded = ref(false);
-const upToDate = ref(false);
-
-let update: Awaited<ReturnType<typeof check>> | null = null;
+// Use shared update store
+const {
+  appName,
+  currentVersion,
+  checking,
+  updateAvailable,
+  latestVersion,
+  downloading,
+  downloadProgress,
+  downloaded,
+  upToDate,
+  loadAppInfo,
+  checkUpdate,
+  downloadUpdate,
+  installAndRestart,
+  resetState,
+} = useUpdateStore();
 
 // Apply theme to document
 const applyTheme = (mode: ThemeMode) => {
@@ -60,70 +61,6 @@ const loadLocale = (): SupportedLocale => {
   return browser as SupportedLocale;
 };
 
-// Check for updates
-async function checkUpdate() {
-  if (checking.value) return;
-
-  checking.value = true;
-  updateAvailable.value = false;
-  upToDate.value = false;
-  downloaded.value = false;
-
-  try {
-    update = await check();
-    if (update) {
-      latestVersion.value = update.version;
-      updateAvailable.value = true;
-    } else {
-      upToDate.value = true;
-    }
-  } catch (e) {
-    console.error("Update check failed", e);
-  } finally {
-    checking.value = false;
-  }
-}
-
-// Download and install update
-async function downloadUpdate() {
-  if (!update || downloading.value) return;
-
-  downloading.value = true;
-  downloadProgress.value = 0;
-
-  try {
-    await update.downloadAndInstall((event) => {
-      switch (event.event) {
-        case "Started":
-          downloadProgress.value = 0;
-          break;
-        case "Progress":
-          // Progress event only provides chunkLength, not contentLength
-          // So we show indeterminate progress with animation instead
-          downloadProgress.value = Math.min(downloadProgress.value + 5, 90);
-          break;
-        case "Finished":
-          downloadProgress.value = 100;
-          downloaded.value = true;
-          downloading.value = false;
-          break;
-      }
-    });
-  } catch (e) {
-    console.error("Download failed", e);
-    downloading.value = false;
-  }
-}
-
-// Install and restart
-async function installAndRestart() {
-  try {
-    await relaunch();
-  } catch (e) {
-    console.error("Restart failed", e);
-  }
-}
-
 // Open GitHub
 function openGitHub() {
   openUrl("https://github.com/Rito-w/skills-manager");
@@ -143,20 +80,17 @@ watch(locale, (next) => {
 
 // Listen for system theme changes
 onMounted(async () => {
-  // Load app info
-  try {
-    appName.value = await getName();
-    currentVersion.value = await getVersion();
-  } catch {
-    appName.value = "Skills Manager";
-    currentVersion.value = "0.3.1";
-  }
+  // Load app info (may already be loaded by startup check)
+  await loadAppInfo();
 
   // Load preferences
   theme.value = loadTheme();
   locale.value = loadLocale();
   i18n.global.locale.value = locale.value;
   applyTheme(theme.value);
+
+  // Reset upToDate state when entering settings (so we can check again)
+  resetState();
 
   // Listen for system theme changes
   window
@@ -180,7 +114,7 @@ onMounted(async () => {
           <span class="version-badge">v{{ currentVersion }}</span>
         </div>
         <div class="about-actions">
-          <button class="ghost" @click="checkUpdate" :disabled="checking">
+          <button class="ghost" @click="() => checkUpdate()" :disabled="checking">
             {{ checking ? t("settings.update.checking") || "..." : t("settings.about.checkUpdate") }}
           </button>
           <button class="ghost" @click="openGitHub">
@@ -201,7 +135,7 @@ onMounted(async () => {
       <div class="update-content">
         <div class="version-row">
           <span class="version-label">{{ currentVersion }}</span>
-          <button class="primary" @click="checkUpdate" :disabled="checking || downloading">
+          <button class="primary" @click="() => checkUpdate()" :disabled="checking || downloading">
             {{ t("settings.update.checkForUpdates") }}
           </button>
         </div>

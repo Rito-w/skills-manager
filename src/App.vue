@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { i18n, supportedLocales, type SupportedLocale } from "./i18n";
 import { useSkillsManager } from "./composables/useSkillsManager";
+import { useUpdateStore } from "./composables/useUpdateStore";
 import MarketPanel from "./components/MarketPanel.vue";
 import LocalPanel from "./components/LocalPanel.vue";
 import IdePanel from "./components/IdePanel.vue";
@@ -42,6 +43,9 @@ onMounted(() => {
   theme.value = loadTheme();
   i18n.global.locale.value = locale.value;
   applyTheme(theme.value);
+
+  // Check for updates on startup
+  checkOnStartup();
 });
 
 watch(locale, (next) => {
@@ -99,6 +103,9 @@ const {
   retryDownload,
   removeFromQueue
 } = useSkillsManager();
+
+// Update store for startup check and badge
+const { updateAvailable, checkOnStartup } = useUpdateStore();
 </script>
 
 <template>
@@ -129,6 +136,7 @@ const {
           @click="activeTab = 'settings'"
         >
           {{ t("app.tabs.settings") }}
+          <span v-if="updateAvailable" class="tab-badge"></span>
         </button>
       </div>
       <div class="header-controls">
@@ -396,6 +404,7 @@ button {
 }
 
 .tab {
+  position: relative;
   padding: 8px 20px;
   border: none;
   border-radius: 8px;
@@ -415,6 +424,21 @@ button {
   background: var(--color-tab-active-bg);
   color: var(--color-tab-active-text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.tab-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: #ff3b30;
+  border-radius: 50%;
+  border: 2px solid var(--color-tab-active-bg);
+}
+
+.tab.active .tab-badge {
+  border-color: var(--color-tab-active-bg);
 }
 
 .header-controls {
