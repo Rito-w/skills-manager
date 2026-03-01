@@ -28,7 +28,7 @@ export function useSkillsManager() {
     string,
     { timestamp: number; data: { skills: RemoteSkill[]; total: number; limit: number; offset: number; marketStatuses: MarketStatus[] } }
   >();
-  const activeTab = ref<"local" | "market" | "ide">("local");
+  const activeTab = ref<"local" | "market" | "ide" | "settings">("local");
 
   const query = ref("");
   const results = ref<RemoteSkill[]>([]);

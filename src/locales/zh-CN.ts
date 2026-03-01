@@ -3,13 +3,51 @@ export default {
     tabs: {
       local: "已有 Skills",
       market: "Market",
-      ide: "IDE 浏览"
+      ide: "IDE 浏览",
+      settings: "设置"
     },
     header: {
       language: "语言",
       theme: "主题",
       themeLight: "浅色",
       themeDark: "深色"
+    }
+  },
+  sidebar: {
+    local: "本地技能",
+    market: "市场",
+    ide: "IDE 管理",
+    settings: "设置",
+    version: "版本",
+    github: "GitHub 仓库",
+    collapse: "收起侧边栏",
+    expand: "展开侧边栏"
+  },
+  settings: {
+    title: "设置",
+    about: {
+      title: "关于",
+      version: "版本",
+      checkUpdate: "检查更新",
+      github: "GitHub"
+    },
+    update: {
+      currentVersion: "当前版本",
+      checking: "检查中...",
+      checkForUpdates: "检查更新",
+      downloading: "正在下载...",
+      downloadAndInstall: "下载并安装",
+      installAndRestart: "安装并重启",
+      upToDate: "已是最新版本",
+      newVersionAvailable: "发现新版本 {version}"
+    },
+    appearance: {
+      title: "外观",
+      theme: "主题",
+      language: "语言",
+      light: "浅色",
+      dark: "深色",
+      system: "跟随系统"
     }
   },
   market: {

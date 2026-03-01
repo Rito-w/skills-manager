@@ -3,13 +3,51 @@ export default {
     tabs: {
       local: "Local Skills",
       market: "Market",
-      ide: "IDE Browser"
+      ide: "IDE Browser",
+      settings: "Settings"
     },
     header: {
       language: "Language",
       theme: "Theme",
       themeLight: "Light",
       themeDark: "Dark"
+    }
+  },
+  sidebar: {
+    local: "Local Skills",
+    market: "Market",
+    ide: "IDE Management",
+    settings: "Settings",
+    version: "Version",
+    github: "GitHub Repository",
+    collapse: "Collapse sidebar",
+    expand: "Expand sidebar"
+  },
+  settings: {
+    title: "Settings",
+    about: {
+      title: "About",
+      version: "Version",
+      checkUpdate: "Check for Updates",
+      github: "GitHub"
+    },
+    update: {
+      currentVersion: "Current Version",
+      checking: "Checking...",
+      checkForUpdates: "Check for Updates",
+      downloading: "Downloading...",
+      downloadAndInstall: "Download and Install",
+      installAndRestart: "Install and Restart",
+      upToDate: "Up to date",
+      newVersionAvailable: "New version {version} available"
+    },
+    appearance: {
+      title: "Appearance",
+      theme: "Theme",
+      language: "Language",
+      light: "Light",
+      dark: "Dark",
+      system: "System"
     }
   },
   market: {
