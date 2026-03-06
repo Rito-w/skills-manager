@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.7](https://github.com/Rito-w/skills-manager/compare/v0.3.6...v0.3.7) (2026-03-06)
+
+
+### Bug Fixes
+
+* allow manual updater release runs ([ffd7211](https://github.com/Rito-w/skills-manager/commit/ffd72113e18bc1b3840152dec361333b71721863))
+
 ### [0.3.6](https://github.com/Rito-w/skills-manager/compare/v0.3.5...v0.3.6) (2026-03-06)
 
 
