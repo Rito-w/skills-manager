@@ -495,11 +495,11 @@ pub fn uninstall_skill(request: UninstallRequest) -> Result<String, String> {
 
     let metadata = fs::symlink_metadata(&target).map_err(|err| err.to_string())?;
     if metadata.file_type().is_symlink() {
-        if target.is_dir() {
-            fs::remove_dir(&target).map_err(|err| err.to_string())?;
-        } else {
-            fs::remove_file(&target).map_err(|err| err.to_string())?;
-        }
+        // `target.is_dir()` follows symlinks and may report true for a symlink-to-dir.
+        // Removing such a symlink with `remove_dir` triggers ENOTDIR/ENOTEMPTY on macOS.
+        fs::remove_file(&target)
+            .or_else(|_| fs::remove_dir(&target))
+            .map_err(|err| err.to_string())?;
         return Ok("Link removed".to_string());
     }
 
