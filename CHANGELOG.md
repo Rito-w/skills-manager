@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.18](https://github.com/Rito-w/skills-manager/compare/v0.3.16...v0.3.18) (2026-03-11)
+
+
+### Features
+
+* add batch adopt for unmanaged IDE skills ([1e252ac](https://github.com/Rito-w/skills-manager/commit/1e252ac1a03ee4a30f1a704d26312fb2467a87b1))
+* add batch uninstall for IDE skills ([5d924ed](https://github.com/Rito-w/skills-manager/commit/5d924ed7aef77ef9b18cc3bbaac1908873b6bc19))
+
+
+### Bug Fixes
+
+* symlink removal error on macOS (os error 20) ([8b29d06](https://github.com/Rito-w/skills-manager/commit/8b29d069c585054e7a9a9fc27f6b889ecf572b0f))
+
 ### [0.3.17](https://github.com/Rito-w/skills-manager/compare/v0.3.16...v0.3.17) (2026-03-11)
 
 ### Features
