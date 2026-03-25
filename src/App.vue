@@ -107,6 +107,7 @@ const {
   confirmUninstall,
   cancelUninstall,
   importLocalSkill,
+  exportLocalSkills,
   openSkillDirectory,
   adoptIdeSkill,
   adoptManyIdeSkills,
@@ -283,6 +284,7 @@ async function handleLinkSkills(projectId: string) {
           :ide-options="ideOptions"
           @install="openInstallModal"
           @install-many="openInstallModal"
+          @export-local="exportLocalSkills"
           @delete-local="openDeleteLocalModal"
           @open-dir="openSkillDirectory"
           @refresh="scanLocalSkills"

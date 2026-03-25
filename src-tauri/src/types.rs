@@ -179,6 +179,13 @@ pub struct DeleteLocalSkillRequest {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
+pub struct ExportSkillsRequest {
+    pub target_paths: Vec<String>,
+    pub export_path: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct AdoptIdeSkillRequest {
     pub target_path: String,
     pub ide_label: String,

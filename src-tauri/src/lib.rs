@@ -5,15 +5,16 @@ mod utils;
 use tauri::Manager;
 use commands::market::{download_marketplace_skill, search_marketplaces, update_marketplace_skill};
 use commands::skills::{
-    adopt_ide_skill, delete_local_skills, import_local_skill, link_local_skill, scan_overview,
-    scan_project_ide_dirs, uninstall_skill,
+    adopt_ide_skill, delete_local_skills, export_local_skills, import_local_skill,
+    link_local_skill, scan_overview, scan_project_ide_dirs, uninstall_skill,
 };
 
 pub use crate::types::{
-    AdoptIdeSkillRequest, DeleteLocalSkillRequest, IdeDir, IdeSkill, ImportRequest, InstallResult,
-    LinkRequest, LinkTarget, LocalScanRequest, LocalSkill, MarketStatus, MarketStatusType,
-    Overview, ProjectIdeDir, ProjectScanRequest, ProjectScanResult, RemoteSkill, RemoteSkillView,
-    RemoteSkillsResponse, RemoteSkillsViewResponse, UninstallRequest,
+    AdoptIdeSkillRequest, DeleteLocalSkillRequest, ExportSkillsRequest, IdeDir, IdeSkill,
+    ImportRequest, InstallResult, LinkRequest, LinkTarget, LocalScanRequest, LocalSkill,
+    MarketStatus, MarketStatusType, Overview, ProjectIdeDir, ProjectScanRequest,
+    ProjectScanResult, RemoteSkill, RemoteSkillView, RemoteSkillsResponse,
+    RemoteSkillsViewResponse, UninstallRequest,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,6 +33,7 @@ pub fn run() {
             uninstall_skill,
             import_local_skill,
             delete_local_skills,
+            export_local_skills,
             adopt_ide_skill,
             scan_project_ide_dirs
         ]);

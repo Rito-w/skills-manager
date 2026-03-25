@@ -1,13 +1,18 @@
 use crate::types::{
-    AdoptIdeSkillRequest, DeleteLocalSkillRequest, IdeSkill, ImportRequest, InstallResult,
-    LinkRequest, LocalScanRequest, LocalSkill, Overview, ProjectIdeDir, ProjectScanRequest,
-    ProjectScanResult, UninstallRequest,
+    AdoptIdeSkillRequest, DeleteLocalSkillRequest, ExportSkillsRequest, IdeSkill, ImportRequest,
+    InstallResult, LinkRequest, LocalScanRequest, LocalSkill, Overview, ProjectIdeDir,
+    ProjectScanRequest, ProjectScanResult, UninstallRequest,
 };
 use crate::utils::download::copy_dir_recursive;
 use crate::utils::path::{normalize_path, resolve_canonical, sanitize_dir_name};
 use crate::utils::security::{is_absolute_ide_path, is_valid_ide_path};
+use std::fs::File;
+use std::io;
 use std::fs;
 use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
+use zip::write::SimpleFileOptions;
+use zip::{CompressionMethod, ZipWriter};
 
 fn read_skill_metadata(skill_dir: &Path) -> (String, String) {
     let name = skill_dir
@@ -209,6 +214,98 @@ fn create_symlink_dir(target: &Path, link: &Path) -> Result<(), String> {
     {
         std::os::windows::fs::symlink_dir(target, link).map_err(|err| err.to_string())
     }
+}
+
+fn validate_manager_skill_path(target: &Path, manager_root: &Path) -> Result<PathBuf, String> {
+    let canonical =
+        resolve_canonical(target).ok_or_else(|| "Target skill does not exist".to_string())?;
+    if !canonical.starts_with(manager_root) {
+        return Err("Only Skills Manager local skills can be exported".to_string());
+    }
+    if canonical == manager_root {
+        return Err("Refusing to export the skills root directory".to_string());
+    }
+    if !canonical.join("SKILL.md").exists() {
+        return Err("Refusing to export a directory without SKILL.md".to_string());
+    }
+    Ok(canonical)
+}
+
+fn ensure_export_path_is_safe(export_path: &Path, skill_paths: &[PathBuf]) -> Result<(), String> {
+    let file_name = export_path
+        .file_name()
+        .ok_or_else(|| "Export path must include a file name".to_string())?;
+    let export_parent = export_path
+        .parent()
+        .ok_or_else(|| "Export path must include a parent directory".to_string())?;
+    let normalized_export_parent =
+        resolve_canonical(export_parent).unwrap_or_else(|| normalize_path(export_parent));
+    let normalized_export = normalized_export_parent.join(file_name);
+    for skill_path in skill_paths {
+        if normalized_export.starts_with(skill_path) {
+            return Err("Export path cannot be inside a selected skill directory".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn zip_skill_directory(
+    zip: &mut ZipWriter<File>,
+    skill_path: &Path,
+    root_name: &str,
+) -> Result<(), String> {
+    let dir_options = || {
+        SimpleFileOptions::default()
+            .compression_method(CompressionMethod::Deflated)
+            .unix_permissions(0o755)
+    };
+    let file_options = || {
+        SimpleFileOptions::default()
+            .compression_method(CompressionMethod::Deflated)
+            .unix_permissions(0o644)
+    };
+
+    let root_dir = format!("{}/", root_name);
+    zip.add_directory(&root_dir, dir_options())
+        .map_err(|err| err.to_string())?;
+
+    for entry in WalkDir::new(skill_path) {
+        let entry = entry.map_err(|err| err.to_string())?;
+        let path = entry.path();
+        let file_type = entry.file_type();
+
+        if file_type.is_symlink() {
+            return Err(format!(
+                "Refusing to export symlinked content: {}",
+                path.display()
+            ));
+        }
+        if path == skill_path {
+            continue;
+        }
+
+        let rel_path = path
+            .strip_prefix(skill_path)
+            .map_err(|err| err.to_string())?;
+        let zip_path = format!(
+            "{}/{}",
+            root_name,
+            rel_path.to_string_lossy().replace('\\', "/")
+        );
+
+        if file_type.is_dir() {
+            zip.add_directory(format!("{}/", zip_path), dir_options())
+                .map_err(|err| err.to_string())?;
+            continue;
+        }
+
+        let mut file = File::open(path).map_err(|err| err.to_string())?;
+        zip.start_file(zip_path, file_options())
+            .map_err(|err| err.to_string())?;
+        io::copy(&mut file, zip).map_err(|err| err.to_string())?;
+    }
+
+    Ok(())
 }
 
 #[cfg(target_family = "windows")]
@@ -658,6 +755,52 @@ pub fn delete_local_skills(request: DeleteLocalSkillRequest) -> Result<String, S
     }
 
     Ok(format!("Deleted {} skills", deleted))
+}
+
+#[tauri::command]
+pub fn export_local_skills(request: ExportSkillsRequest) -> Result<String, String> {
+    let home = dirs::home_dir().ok_or("Unable to determine the home directory")?;
+    let manager_root = resolve_canonical(&home.join(".skills-manager/skills"))
+        .unwrap_or_else(|| normalize_path(&home.join(".skills-manager/skills")));
+
+    if request.target_paths.is_empty() {
+        return Err("No skills were provided for export".to_string());
+    }
+    if request.export_path.trim().is_empty() {
+        return Err("Export path is required".to_string());
+    }
+
+    let export_path = PathBuf::from(&request.export_path);
+    let export_parent = export_path
+        .parent()
+        .ok_or_else(|| "Export path must include a parent directory".to_string())?;
+    fs::create_dir_all(export_parent).map_err(|err| err.to_string())?;
+
+    let mut skill_paths = Vec::new();
+    for raw_path in request.target_paths {
+        let canonical = validate_manager_skill_path(&PathBuf::from(raw_path), &manager_root)?;
+        skill_paths.push(canonical);
+    }
+
+    ensure_export_path_is_safe(&export_path, &skill_paths)?;
+
+    let file = File::create(&export_path).map_err(|err| err.to_string())?;
+    let mut zip = ZipWriter::new(file);
+
+    for skill_path in &skill_paths {
+        let root_name = skill_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("skill");
+        if let Err(err) = zip_skill_directory(&mut zip, skill_path, root_name) {
+            let _ = zip.finish();
+            let _ = fs::remove_file(&export_path);
+            return Err(err);
+        }
+    }
+
+    zip.finish().map_err(|err| err.to_string())?;
+    Ok(export_path.display().to_string())
 }
 
 #[tauri::command]

@@ -110,6 +110,19 @@ export function useSkillsManager() {
     return join(home, ".skills-manager/skills");
   }
 
+  function sanitizeExportFileName(name: string): string {
+    const sanitized = name.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, "-").replace(/\s+/g, "-");
+    return sanitized || "skill";
+  }
+
+  function buildExportDefaultName(skills: LocalSkill[]): string {
+    if (skills.length === 1) {
+      return `${sanitizeExportFileName(skills[0].name)}.zip`;
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    return `skills-export-${timestamp}.zip`;
+  }
+
   async function buildLinkTargets(targetLabel: string): Promise<LinkTarget[]> {
     const target = ideOptions.value.find((option) => option.label === targetLabel);
     if (!target) return [];
@@ -629,6 +642,43 @@ export function useSkillsManager() {
     }
   }
 
+  async function exportLocalSkills(skills: LocalSkill[]) {
+    if (skills.length === 0) return;
+
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const defaultPath = buildExportDefaultName(skills);
+      const exportPath = await save({
+        title: t("local.selectExportPath"),
+        defaultPath,
+        filters: [{ name: "ZIP Archive", extensions: ["zip"] }]
+      });
+
+      if (!exportPath) return;
+
+      busy.value = true;
+      busyText.value = t("messages.exporting");
+
+      const normalizedExportPath = exportPath.toLowerCase().endsWith(".zip")
+        ? exportPath
+        : `${exportPath}.zip`;
+
+      const result = (await invoke("export_local_skills", {
+        request: {
+          targetPaths: skills.map((skill) => skill.path),
+          exportPath: normalizedExportPath
+        }
+      })) as string;
+
+      toast.success(t("messages.exported", { path: result }));
+    } catch (err) {
+      toast.error(getErrorMessage(err, t("errors.exportFailed")));
+    } finally {
+      busy.value = false;
+      busyText.value = "";
+    }
+  }
+
   async function openSkillDirectory(path: string) {
     try {
       await revealItemInDir(path);
@@ -762,6 +812,7 @@ export function useSkillsManager() {
     confirmUninstall,
     cancelUninstall,
     importLocalSkill,
+    exportLocalSkills,
     openSkillDirectory,
     adoptIdeSkill,
     adoptManyIdeSkills,
