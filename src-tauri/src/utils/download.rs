@@ -28,9 +28,21 @@ enum DownloadSource {
 }
 
 pub fn download_bytes(url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>, String> {
+    download_bytes_with_timeout(url, headers, 60)
+}
+
+pub fn download_market_bytes(url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>, String> {
+    download_bytes_with_timeout(url, headers, 4)
+}
+
+fn download_bytes_with_timeout(
+    url: &str,
+    headers: &[(&str, &str)],
+    timeout_secs: u64,
+) -> Result<Vec<u8>, String> {
     let agent = ureq::AgentBuilder::new()
         .redirects(5)
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(timeout_secs))
         .build();
     let mut request = agent.get(url);
     for (key, value) in headers {
@@ -267,7 +279,7 @@ pub fn extract_zip(buf: &[u8], extract_dir: &Path) -> Result<(), String> {
         .unwrap_or_else(|_| extract_dir.to_path_buf());
 
     for i in 0..zip.len() {
-        let mut file = zip.by_index(i).map_err(|err| err.to_string())?;
+        let file = zip.by_index(i).map_err(|err| err.to_string())?;
         let Some(enclosed) = file.enclosed_name() else {
             continue;
         };

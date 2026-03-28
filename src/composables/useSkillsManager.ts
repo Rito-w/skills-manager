@@ -71,11 +71,7 @@ export function useSkillsManager() {
 
   const hasMore = computed(() => results.value.length < total.value);
   const sortedResults = computed(() => {
-    if (marketSortMode.value === "default") {
-      return results.value;
-    }
-
-    const sortBy = marketSortMode.value === "stars_desc" ? "stars" : "installs";
+    const sortBy = marketSortMode.value === "installs_desc" ? "installs" : "stars";
     return [...results.value].sort((left, right) => {
       const diff = right[sortBy] - left[sortBy];
       if (diff !== 0) return diff;

@@ -2,14 +2,22 @@ use crate::types::{
     DownloadRequest, DownloadResult, MarketStatus, MarketStatusType, RemoteSkill, RemoteSkillView,
     RemoteSkillsResponse, RemoteSkillsViewResponse,
 };
-use crate::utils::download::{download_bytes, download_skill_to_dir};
+use crate::utils::download::{download_market_bytes, download_skill_to_dir};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
+use std::thread;
+use std::time::{Duration, Instant};
 
 const USER_AGENT: &str = "skills-manager-gui/0.1";
 const SKILLS_HUB_INDEX_URL: &str =
     "https://raw.githubusercontent.com/qufei1993/skills-hub/main/featured-skills.json";
+const SKILLS_HUB_CDN_URL: &str =
+    "https://cdn.jsdelivr.net/gh/qufei1993/skills-hub@main/featured-skills.json";
+const MARKET_FAILURE_COOLDOWN: Duration = Duration::from_secs(90);
+
+static MARKET_FAILURES: OnceLock<Mutex<HashMap<&'static str, Instant>>> = OnceLock::new();
 
 #[derive(Deserialize, Debug)]
 struct SkillsHubResponse {
@@ -263,19 +271,265 @@ fn parse_skills_hub(
     Ok((skills, total))
 }
 
-fn push_status(
-    statuses: &mut Vec<MarketStatus>,
-    id: &str,
-    name: &str,
-    status: MarketStatusType,
-    error: Option<String>,
-) {
-    statuses.push(MarketStatus {
+struct MarketFetchResult {
+    skills: Vec<RemoteSkillView>,
+    total: u64,
+    status: MarketStatus,
+}
+
+fn build_status(id: &str, name: &str, status: MarketStatusType, error: Option<String>) -> MarketStatus {
+    MarketStatus {
         id: id.to_string(),
         name: name.to_string(),
         status,
         error,
-    });
+    }
+}
+
+fn market_failures() -> &'static Mutex<HashMap<&'static str, Instant>> {
+    MARKET_FAILURES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn recently_failed(market_id: &'static str) -> bool {
+    let Ok(guard) = market_failures().lock() else {
+        return false;
+    };
+
+    guard
+        .get(market_id)
+        .is_some_and(|instant| instant.elapsed() < MARKET_FAILURE_COOLDOWN)
+}
+
+fn mark_market_failure(market_id: &'static str) {
+    if let Ok(mut guard) = market_failures().lock() {
+        guard.insert(market_id, Instant::now());
+    }
+}
+
+fn clear_market_failure(market_id: &'static str) {
+    if let Ok(mut guard) = market_failures().lock() {
+        guard.remove(market_id);
+    }
+}
+
+fn cooldown_result(id: &str, name: &str) -> MarketFetchResult {
+    error_result(
+        id,
+        name,
+        format!(
+            "Temporarily skipped after a recent network failure. Retrying in {} seconds.",
+            MARKET_FAILURE_COOLDOWN.as_secs()
+        ),
+    )
+}
+
+fn online_result(id: &str, name: &str) -> MarketFetchResult {
+    MarketFetchResult {
+        skills: Vec::new(),
+        total: 0,
+        status: build_status(id, name, MarketStatusType::Online, None),
+    }
+}
+
+fn needs_key_result(id: &str, name: &str) -> MarketFetchResult {
+    MarketFetchResult {
+        skills: Vec::new(),
+        total: 0,
+        status: build_status(id, name, MarketStatusType::NeedsKey, None),
+    }
+}
+
+fn error_result(id: &str, name: &str, error: impl Into<String>) -> MarketFetchResult {
+    MarketFetchResult {
+        skills: Vec::new(),
+        total: 0,
+        status: build_status(id, name, MarketStatusType::Error, Some(error.into())),
+    }
+}
+
+fn fetch_claude_plugins(trimmed: &str, limit: u64, offset: u64) -> MarketFetchResult {
+    let market_id = "claude-plugins";
+    let market_label = "Claude Plugins";
+    if recently_failed(market_id) {
+        return cooldown_result(market_id, market_label);
+    }
+
+    let query_param = if trimmed.is_empty() {
+        String::new()
+    } else {
+        format!("q={}", urlencoding::encode(trimmed))
+    };
+
+    let mut url = String::from("https://claude-plugins.dev/api/skills?");
+    if !query_param.is_empty() {
+        url.push_str(&query_param);
+        url.push('&');
+    }
+    url.push_str(&format!("limit={limit}&offset={offset}"));
+
+    match download_market_bytes(&url, &[("Accept", "application/json"), ("User-Agent", USER_AGENT)]) {
+        Ok(buf) => match serde_json::from_slice::<RemoteSkillsResponse>(&buf) {
+            Ok(parsed) => {
+                clear_market_failure(market_id);
+                MarketFetchResult {
+                    total: parsed.total,
+                    skills: parsed
+                        .skills
+                        .into_iter()
+                        .map(|skill| map_claude_skill(skill, market_id, market_label))
+                        .collect(),
+                    status: build_status(market_id, market_label, MarketStatusType::Online, None),
+                }
+            }
+            Err(_) => {
+                mark_market_failure(market_id);
+                error_result(market_id, market_label, "Failed to parse response")
+            }
+        },
+        Err(err) => {
+            println!("Error fetching from Claude Plugins: {err}");
+            mark_market_failure(market_id);
+            error_result(market_id, market_label, err)
+        }
+    }
+}
+
+fn fetch_skillsllm(trimmed: &str, limit: u64, offset: u64) -> MarketFetchResult {
+    let market_id = "skillsllm";
+    let market_label = "SkillsLLM";
+    if recently_failed(market_id) {
+        return cooldown_result(market_id, market_label);
+    }
+
+    let mut url = String::from("https://api.skills-llm.com/skill?sort=stars");
+    if !trimmed.is_empty() {
+        url.push_str("&q=");
+        url.push_str(&urlencoding::encode(trimmed));
+    }
+    url.push_str(&format!("&limit={limit}&offset={offset}"));
+
+    match download_market_bytes(
+        &url,
+        &[
+            ("Accept", "application/json"),
+            ("X-GitHub-Api-Version", "2022-11-28"),
+            ("User-Agent", USER_AGENT),
+        ],
+    ) {
+        Ok(buf) => match parse_skillsllm(&buf, market_id, market_label) {
+            Ok((skills, total)) => {
+                clear_market_failure(market_id);
+                MarketFetchResult {
+                    skills,
+                    total,
+                    status: build_status(market_id, market_label, MarketStatusType::Online, None),
+                }
+            }
+            Err(_) => {
+                mark_market_failure(market_id);
+                error_result(market_id, market_label, "Failed to parse response")
+            }
+        },
+        Err(err) => {
+            println!("Error fetching from SkillsLLM: {err}");
+            mark_market_failure(market_id);
+            error_result(market_id, market_label, err)
+        }
+    }
+}
+
+fn fetch_skills_hub(trimmed: &str, limit: u64, offset: u64) -> MarketFetchResult {
+    let market_id = "skills-hub";
+    let market_label = "Skills Hub";
+    if recently_failed(market_id) {
+        return cooldown_result(market_id, market_label);
+    }
+
+    let headers = [("Accept", "application/json"), ("User-Agent", USER_AGENT)];
+    let buf = match download_market_bytes(SKILLS_HUB_INDEX_URL, &headers) {
+        Ok(buf) => Ok(buf),
+        Err(primary_err) => {
+            println!("Error fetching from Skills Hub primary URL: {primary_err}");
+            download_market_bytes(SKILLS_HUB_CDN_URL, &headers).map_err(|fallback_err| {
+                format!("Primary failed: {primary_err}; CDN failed: {fallback_err}")
+            })
+        }
+    };
+
+    match buf {
+        Ok(buf) => match parse_skills_hub(&buf, market_id, market_label, trimmed, limit, offset) {
+            Ok((skills, total)) => {
+                clear_market_failure(market_id);
+                MarketFetchResult {
+                    skills,
+                    total,
+                    status: build_status(market_id, market_label, MarketStatusType::Online, None),
+                }
+            }
+            Err(err) => {
+                mark_market_failure(market_id);
+                error_result(market_id, market_label, err)
+            }
+        },
+        Err(err) => {
+            println!("Error fetching from Skills Hub: {err}");
+            mark_market_failure(market_id);
+            error_result(market_id, market_label, err)
+        }
+    }
+}
+
+fn fetch_skillsmp(trimmed: &str, limit: u64, offset: u64, api_key: Option<String>) -> MarketFetchResult {
+    let market_id = "skillsmp";
+    let market_label = "SkillsMP";
+
+    let Some(api_key) = api_key.filter(|key| !key.is_empty()) else {
+        return needs_key_result(market_id, market_label);
+    };
+
+    if recently_failed(market_id) {
+        return cooldown_result(market_id, market_label);
+    }
+
+    if trimmed.is_empty() {
+        return online_result(market_id, market_label);
+    }
+
+    let page = (offset / limit).saturating_add(1);
+    let url = format!(
+        "https://skillsmp.com/api/v1/skills/search?q={}&page={page}&limit={limit}",
+        urlencoding::encode(trimmed)
+    );
+    let auth_header = format!("Bearer {api_key}");
+
+    match download_market_bytes(
+        &url,
+        &[
+            ("Accept", "application/json"),
+            ("User-Agent", USER_AGENT),
+            ("Authorization", &auth_header),
+        ],
+    ) {
+        Ok(buf) => match parse_skillsmp(&buf, market_id, market_label) {
+            Ok((skills, total)) => {
+                clear_market_failure(market_id);
+                MarketFetchResult {
+                    skills,
+                    total,
+                    status: build_status(market_id, market_label, MarketStatusType::Online, None),
+                }
+            }
+            Err(_) => {
+                mark_market_failure(market_id);
+                error_result(market_id, market_label, "Failed to parse response")
+            }
+        },
+        Err(err) => {
+            println!("Error fetching from SkillsMP: {err}");
+            mark_market_failure(market_id);
+            error_result(market_id, market_label, err)
+        }
+    }
 }
 
 #[tauri::command]
@@ -292,259 +546,77 @@ pub async fn search_marketplaces(
         let mut market_statuses: Vec<MarketStatus> = Vec::new();
 
         let trimmed = query.trim();
-        let query_param = if trimmed.is_empty() {
-            String::new()
-        } else {
-            format!("q={}", urlencoding::encode(trimmed))
+        let limit = if limit == 0 { 20 } else { limit };
+        let trimmed = trimmed.to_string();
+
+        let claude_enabled = *enabled_markets.get("claude-plugins").unwrap_or(&true);
+        let skillsllm_enabled = *enabled_markets.get("skillsllm").unwrap_or(&true);
+        let skills_hub_enabled = *enabled_markets.get("skills-hub").unwrap_or(&true);
+        let skillsmp_enabled = *enabled_markets.get("skillsmp").unwrap_or(&false);
+        let skillsmp_api_key = api_keys.get("skillsmp").cloned();
+
+        let claude_handle = claude_enabled.then(|| {
+            let trimmed = trimmed.clone();
+            thread::spawn(move || fetch_claude_plugins(&trimmed, limit, offset))
+        });
+        let skillsllm_handle = skillsllm_enabled.then(|| {
+            let trimmed = trimmed.clone();
+            thread::spawn(move || fetch_skillsllm(&trimmed, limit, offset))
+        });
+        let skills_hub_handle = skills_hub_enabled.then(|| {
+            let trimmed = trimmed.clone();
+            thread::spawn(move || fetch_skills_hub(&trimmed, limit, offset))
+        });
+        let skillsmp_handle = skillsmp_enabled.then(|| {
+            let trimmed = trimmed.clone();
+            let api_key = skillsmp_api_key.clone();
+            thread::spawn(move || fetch_skillsmp(&trimmed, limit, offset, api_key))
+        });
+
+        let mut merge_result = |result: MarketFetchResult| {
+            total += result.total;
+            skills.extend(result.skills);
+            market_statuses.push(result.status);
         };
 
-        let limit = if limit == 0 { 20 } else { limit };
-
-        let claude_market_id = "claude-plugins";
-        let claude_market_label = "Claude Plugins";
-        if *enabled_markets.get(claude_market_id).unwrap_or(&true) {
-            let mut url = String::from("https://claude-plugins.dev/api/skills?");
-            if !query_param.is_empty() {
-                url.push_str(&query_param);
-                url.push('&');
-            }
-            url.push_str(&format!("limit={limit}&offset={offset}"));
-
-            match download_bytes(&url, &[("Accept", "application/json"), ("User-Agent", USER_AGENT)]) {
-                Ok(buf) => {
-                    if let Ok(parsed) = serde_json::from_slice::<RemoteSkillsResponse>(&buf) {
-                        total += parsed.total;
-                        skills.extend(
-                            parsed
-                                .skills
-                                .into_iter()
-                                .map(|skill| map_claude_skill(skill, claude_market_id, claude_market_label)),
-                        );
-                        push_status(
-                            &mut market_statuses,
-                            claude_market_id,
-                            claude_market_label,
-                            MarketStatusType::Online,
-                            None,
-                        );
-                    } else {
-                        push_status(
-                            &mut market_statuses,
-                            claude_market_id,
-                            claude_market_label,
-                            MarketStatusType::Error,
-                            Some("Failed to parse response".to_string()),
-                        );
-                    }
-                }
-                Err(err) => {
-                    println!("Error fetching from Claude Plugins: {err}");
-                    push_status(
-                        &mut market_statuses,
-                        claude_market_id,
-                        claude_market_label,
-                        MarketStatusType::Error,
-                        Some(err),
-                    );
-                }
+        if let Some(handle) = claude_handle {
+            match handle.join() {
+                Ok(result) => merge_result(result),
+                Err(_) => merge_result(error_result(
+                    "claude-plugins",
+                    "Claude Plugins",
+                    "Marketplace worker panicked",
+                )),
             }
         } else {
-            push_status(
-                &mut market_statuses,
-                claude_market_id,
-                claude_market_label,
-                MarketStatusType::Online,
-                None,
-            );
+            merge_result(online_result("claude-plugins", "Claude Plugins"));
         }
 
-        let skillsllm_market_id = "skillsllm";
-        let skillsllm_market_label = "SkillsLLM";
-        if *enabled_markets.get(skillsllm_market_id).unwrap_or(&true) {
-            let mut skillsllm_url = String::from("https://api.skills-llm.com/skill?sort=stars");
-            if !query_param.is_empty() {
-                skillsllm_url.push('&');
-                skillsllm_url.push_str(&query_param);
-            }
-            skillsllm_url.push_str(&format!("&limit={limit}&offset={offset}"));
-
-            match download_bytes(
-                &skillsllm_url,
-                &[
-                    ("Accept", "application/json"),
-                    ("X-GitHub-Api-Version", "2022-11-28"),
-                    ("User-Agent", USER_AGENT),
-                ],
-            ) {
-                Ok(buf) => {
-                    if let Ok((parsed_skills, parsed_total)) =
-                        parse_skillsllm(&buf, skillsllm_market_id, skillsllm_market_label)
-                    {
-                        total += parsed_total;
-                        skills.extend(parsed_skills);
-                        push_status(
-                            &mut market_statuses,
-                            skillsllm_market_id,
-                            skillsllm_market_label,
-                            MarketStatusType::Online,
-                            None,
-                        );
-                    } else {
-                        push_status(
-                            &mut market_statuses,
-                            skillsllm_market_id,
-                            skillsllm_market_label,
-                            MarketStatusType::Error,
-                            Some("Failed to parse response".to_string()),
-                        );
-                    }
-                }
-                Err(err) => {
-                    println!("Error fetching from SkillsLLM: {err}");
-                    push_status(
-                        &mut market_statuses,
-                        skillsllm_market_id,
-                        skillsllm_market_label,
-                        MarketStatusType::Error,
-                        Some(err),
-                    );
-                }
+        if let Some(handle) = skillsllm_handle {
+            match handle.join() {
+                Ok(result) => merge_result(result),
+                Err(_) => merge_result(error_result("skillsllm", "SkillsLLM", "Marketplace worker panicked")),
             }
         } else {
-            push_status(
-                &mut market_statuses,
-                skillsllm_market_id,
-                skillsllm_market_label,
-                MarketStatusType::Online,
-                None,
-            );
+            merge_result(online_result("skillsllm", "SkillsLLM"));
         }
 
-        let skills_hub_market_id = "skills-hub";
-        let skills_hub_market_label = "Skills Hub";
-        if *enabled_markets.get(skills_hub_market_id).unwrap_or(&true) {
-            match download_bytes(
-                SKILLS_HUB_INDEX_URL,
-                &[("Accept", "application/json"), ("User-Agent", USER_AGENT)],
-            ) {
-                Ok(buf) => match parse_skills_hub(
-                    &buf,
-                    skills_hub_market_id,
-                    skills_hub_market_label,
-                    trimmed,
-                    limit,
-                    offset,
-                ) {
-                    Ok((parsed_skills, parsed_total)) => {
-                        total += parsed_total;
-                        skills.extend(parsed_skills);
-                        push_status(
-                            &mut market_statuses,
-                            skills_hub_market_id,
-                            skills_hub_market_label,
-                            MarketStatusType::Online,
-                            None,
-                        );
-                    }
-                    Err(err) => push_status(
-                        &mut market_statuses,
-                        skills_hub_market_id,
-                        skills_hub_market_label,
-                        MarketStatusType::Error,
-                        Some(err),
-                    ),
-                },
-                Err(err) => {
-                    println!("Error fetching from Skills Hub: {err}");
-                    push_status(
-                        &mut market_statuses,
-                        skills_hub_market_id,
-                        skills_hub_market_label,
-                        MarketStatusType::Error,
-                        Some(err),
-                    );
-                }
+        if let Some(handle) = skills_hub_handle {
+            match handle.join() {
+                Ok(result) => merge_result(result),
+                Err(_) => merge_result(error_result("skills-hub", "Skills Hub", "Marketplace worker panicked")),
             }
         } else {
-            push_status(
-                &mut market_statuses,
-                skills_hub_market_id,
-                skills_hub_market_label,
-                MarketStatusType::Online,
-                None,
-            );
+            merge_result(online_result("skills-hub", "Skills Hub"));
         }
 
-        let skillsmp_market_id = "skillsmp";
-        let skillsmp_market_label = "SkillsMP";
-        if *enabled_markets.get(skillsmp_market_id).unwrap_or(&false) {
-            if let Some(api_key) = api_keys.get(skillsmp_market_id).filter(|key| !key.is_empty()) {
-                let skillsmp_page = (offset / limit).saturating_add(1);
-                let skillsmp_url = format!(
-                    "https://skillsmp.com/api/v1/skills/search?q={}&page={skillsmp_page}&limit={limit}",
-                    urlencoding::encode(trimmed)
-                );
-
-                let auth_header = format!("Bearer {api_key}");
-                match download_bytes(
-                    &skillsmp_url,
-                    &[
-                        ("Accept", "application/json"),
-                        ("User-Agent", USER_AGENT),
-                        ("Authorization", &auth_header),
-                    ],
-                ) {
-                    Ok(buf) => {
-                        if let Ok((parsed_skills, parsed_total)) =
-                            parse_skillsmp(&buf, skillsmp_market_id, skillsmp_market_label)
-                        {
-                            total += parsed_total;
-                            skills.extend(parsed_skills);
-                            push_status(
-                                &mut market_statuses,
-                                skillsmp_market_id,
-                                skillsmp_market_label,
-                                MarketStatusType::Online,
-                                None,
-                            );
-                        } else {
-                            push_status(
-                                &mut market_statuses,
-                                skillsmp_market_id,
-                                skillsmp_market_label,
-                                MarketStatusType::Error,
-                                Some("Failed to parse response".to_string()),
-                            );
-                        }
-                    }
-                    Err(err) => {
-                        println!("Error fetching from SkillsMP: {err}");
-                        push_status(
-                            &mut market_statuses,
-                            skillsmp_market_id,
-                            skillsmp_market_label,
-                            MarketStatusType::Error,
-                            Some(err),
-                        );
-                    }
-                }
-            } else {
-                push_status(
-                    &mut market_statuses,
-                    skillsmp_market_id,
-                    skillsmp_market_label,
-                    MarketStatusType::NeedsKey,
-                    None,
-                );
+        if let Some(handle) = skillsmp_handle {
+            match handle.join() {
+                Ok(result) => merge_result(result),
+                Err(_) => merge_result(error_result("skillsmp", "SkillsMP", "Marketplace worker panicked")),
             }
         } else {
-            push_status(
-                &mut market_statuses,
-                skillsmp_market_id,
-                skillsmp_market_label,
-                MarketStatusType::NeedsKey,
-                None,
-            );
+            merge_result(needs_key_result("skillsmp", "SkillsMP"));
         }
 
         Ok(RemoteSkillsViewResponse {
