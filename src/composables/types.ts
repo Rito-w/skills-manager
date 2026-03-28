@@ -95,8 +95,6 @@ export type DownloadTask = {
   error?: string;
 };
 
-export type MarketSortMode = "default" | "stars_desc" | "installs_desc";
-
 /**
  * Market result sorting mode
  */
