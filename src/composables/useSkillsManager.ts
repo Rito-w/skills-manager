@@ -8,6 +8,7 @@ import type {
   RemoteSkill, MarketStatus, InstallResult, LocalSkill,
   IdeSkill, Overview, LinkTarget, DownloadTask, ProjectConfig, MarketSortMode
 } from "./types";
+import { buildProjectLinkTargets } from "./projectTargets";
 import { useIdeConfig } from "./useIdeConfig";
 import { useMarketConfig } from "./useMarketConfig";
 import {
@@ -459,7 +460,7 @@ export function useSkillsManager() {
         for (const skill of installTargetSkills.value) {
           for (const project of selectedProjects) {
             for (const ideLabel of project.ideTargets) {
-              const result = await linkSkillToProjectInternal(skill, project.path, ideLabel, true, true);
+              const result = await linkSkillToProjectInternal(skill, project, ideLabel, true, true);
               totalLinked += result.linked.length;
               totalSkipped += result.skipped.length;
             }
@@ -516,10 +517,16 @@ export function useSkillsManager() {
     }
   }
 
-  async function linkSkillToProjectInternal(skill: LocalSkill, projectPath: string, ideLabel: string, skipScan = false, suppressToast = false) {
-    const linkTargets = await buildProjectLinkTargets(projectPath, ideLabel);
+  async function linkSkillToProjectInternal(
+    skill: LocalSkill,
+    project: ProjectConfig,
+    ideLabel: string,
+    skipScan = false,
+    suppressToast = false
+  ) {
+    const linkTargets = buildProjectLinkTargets(project, ideLabel, ideOptions.value);
     if (linkTargets.length === 0) {
-      throw new Error(t("errors.selectValidIde"));
+      throw new Error(`${t("errors.selectValidIde")} (${project.name}: ${ideLabel})`);
     }
     const result = (await invoke("link_local_skill", {
       request: {
@@ -538,18 +545,6 @@ export function useSkillsManager() {
       await scanLocalSkills();
     }
     return result;
-  }
-
-  async function buildProjectLinkTargets(projectPath: string, ideLabel: string): Promise<LinkTarget[]> {
-    const target = ideOptions.value.find((option) => option.label === ideLabel);
-    if (!target) return [];
-
-    const dir = target.globalDir;
-
-    // Build project-specific path
-    const skillPath = dir.startsWith("/") ? dir : `${projectPath}/${dir}`;
-    
-    return [{ name: `${target.label} (${projectPath.split('/').pop()})`, path: skillPath }];
   }
 
   function closeInstallModal() {
