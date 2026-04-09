@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import type { LocalSkill, DownloadTask, IdeOption } from "../composables/types";
+import { invoke } from "@tauri-apps/api/core";
+import type { LocalSkill, LocalSkillPreview, DownloadTask, IdeOption } from "../composables/types";
 import DownloadQueue from "./DownloadQueue.vue";
+import SkillPreviewModal from "./SkillPreviewModal.vue";
 import { useI18n } from "vue-i18n";
 import { normalizeSkillName } from "../composables/utils";
+import { useToast } from "../composables/useToast";
 
 const { t } = useI18n();
+const toast = useToast();
 
 const props = defineProps<{
   localSkills: LocalSkill[];
@@ -29,6 +33,10 @@ const emit = defineEmits<{
 
 const selectedIds = ref<string[]>([]);
 const searchQuery = ref("");
+const previewVisible = ref(false);
+const previewLoading = ref(false);
+const previewSkill = ref<LocalSkill | null>(null);
+const previewData = ref<LocalSkillPreview | null>(null);
 
 const filteredLocalSkills = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase();
@@ -97,6 +105,37 @@ function exportSelected() {
 function deleteSelected() {
   if (selectedSkills.value.length === 0) return;
   emit("deleteLocal", selectedSkills.value);
+}
+
+async function openPreview(skill: LocalSkill) {
+  const currentSkillPath = skill.path;
+  previewVisible.value = true;
+  previewLoading.value = true;
+  previewSkill.value = skill;
+  previewData.value = null;
+
+  try {
+    const result = await invoke<LocalSkillPreview>("read_local_skill_preview", {
+      skillPath: currentSkillPath
+    });
+    if (previewSkill.value?.path !== currentSkillPath) return;
+    previewData.value = result;
+  } catch {
+    if (previewSkill.value?.path !== currentSkillPath) return;
+    closePreview();
+    toast.error(t("errors.previewFailed"));
+  } finally {
+    if (previewSkill.value?.path === currentSkillPath || previewSkill.value === null) {
+      previewLoading.value = false;
+    }
+  }
+}
+
+function closePreview() {
+  previewVisible.value = false;
+  previewLoading.value = false;
+  previewSkill.value = null;
+  previewData.value = null;
 }
 </script>
 
@@ -191,6 +230,9 @@ function deleteSelected() {
             <button class="primary" :disabled="installingId === skill.id" @click="$emit('install', skill)">
             {{ installingId === skill.id ? t("local.processing") : t("local.install") }}
             </button>
+            <button class="ghost" @click="openPreview(skill)">
+              {{ t("local.preview") }}
+            </button>
             <button class="ghost" @click="$emit('openDir', skill.path)">
               {{ t("local.openDir") }}
             </button>
@@ -216,6 +258,14 @@ function deleteSelected() {
         </div>
       </article>
     </div>
+
+    <SkillPreviewModal
+      :visible="previewVisible"
+      :skill="previewSkill"
+      :preview="previewData"
+      :loading="previewLoading"
+      @close="closePreview"
+    />
   </section>
 </template>
 

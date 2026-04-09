@@ -1,14 +1,14 @@
 use crate::types::{
     AdoptIdeSkillRequest, DeleteLocalSkillRequest, ExportSkillsRequest, IdeSkill, ImportRequest,
-    InstallResult, LinkRequest, LocalScanRequest, LocalSkill, Overview, ProjectIdeDir,
-    ProjectScanRequest, ProjectScanResult, UninstallRequest,
+    InstallResult, LinkRequest, LocalScanRequest, LocalSkill, LocalSkillPreview, Overview,
+    ProjectIdeDir, ProjectScanRequest, ProjectScanResult, UninstallRequest,
 };
 use crate::utils::download::copy_dir_recursive;
 use crate::utils::path::{normalize_path, resolve_canonical, sanitize_dir_name};
 use crate::utils::security::{is_absolute_ide_path, is_valid_ide_path};
+use std::fs;
 use std::fs::File;
 use std::io;
-use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
@@ -722,6 +722,21 @@ pub fn adopt_ide_skill(request: AdoptIdeSkillRequest) -> Result<String, String> 
         "Managed {} and re-linked it to {}",
         name, request.ide_label
     ))
+}
+
+#[tauri::command]
+pub fn read_local_skill_preview(skill_path: String) -> Result<LocalSkillPreview, String> {
+    let home = dirs::home_dir().ok_or("Unable to determine the home directory")?;
+    let manager_root = resolve_canonical(&home.join(".skills-manager/skills"))
+        .unwrap_or_else(|| normalize_path(&home.join(".skills-manager/skills")));
+    let canonical = validate_manager_skill_path(&PathBuf::from(skill_path), &manager_root)?;
+    let skill_md_path = canonical.join("SKILL.md");
+    let skill_md_content = fs::read_to_string(&skill_md_path).map_err(|err| err.to_string())?;
+
+    Ok(LocalSkillPreview {
+        skill_md_path: skill_md_path.display().to_string(),
+        skill_md_content,
+    })
 }
 
 #[tauri::command]

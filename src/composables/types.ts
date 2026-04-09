@@ -46,6 +46,11 @@ export type LocalSkill = {
   usedBy: string[];
 };
 
+export type LocalSkillPreview = {
+  skillMdPath: string;
+  skillMdContent: string;
+};
+
 /**
  * Skill in IDE directory
  */
