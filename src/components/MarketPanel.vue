@@ -7,7 +7,7 @@ import { normalizeSkillName } from "../composables/utils";
 import MarketSettingsModal from "./MarketSettingsModal.vue";
 import ManualAddSkillModal from "./ManualAddSkillModal.vue";
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 
 const props = defineProps<{
   query: string;
@@ -51,13 +51,6 @@ function handleSortModeChange(event: Event) {
 async function openSource(skill: RemoteSkill) {
   if (!skill.sourceUrl?.trim()) return;
   await openUrl(skill.sourceUrl.trim());
-}
-
-async function openTranslatedSource(skill: RemoteSkill) {
-  if (!skill.sourceUrl?.trim()) return;
-  const targetLocale = locale.value.startsWith("zh") ? "zh-CN" : "en";
-  const translateUrl = `https://translate.google.com/translate?hl=${targetLocale}&sl=auto&tl=${targetLocale}&u=${encodeURIComponent(skill.sourceUrl.trim())}`;
-  await openUrl(translateUrl);
 }
 </script>
 
@@ -168,13 +161,6 @@ async function openTranslatedSource(skill: RemoteSkill) {
             @click="openSource(skill)"
           >
             {{ t("market.viewSource") }}
-          </button>
-          <button
-            class="ghost"
-            :disabled="!skill.sourceUrl || !skill.sourceUrl.trim()"
-            @click="openTranslatedSource(skill)"
-          >
-            {{ t("market.translateSource") }}
           </button>
         </div>
       </article>

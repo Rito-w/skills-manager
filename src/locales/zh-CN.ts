@@ -83,7 +83,6 @@ export default {
     unavailable: "暂不可用",
     source: "来源：{source}",
     viewSource: "查看",
-    translateSource: "翻译查看",
     loadMore: "加载更多",
     sortLabel: "排序",
     sortDefault: "默认（按 Star）",

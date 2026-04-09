@@ -83,7 +83,6 @@ export default {
     updating: "Updating...",
     source: "Source: {source}",
     viewSource: "View",
-    translateSource: "Translate",
     loadMore: "Load More",
     sortLabel: "Sort By",
     sortDefault: "Default (Stars)",
