@@ -97,6 +97,8 @@ const {
   searchMarketplace,
   downloadSkill,
   updateSkill,
+  updateLocalSkill,
+  updateLocalSkills,
   addManualSkill,
   scanLocalSkills,
   openInstallModal,
@@ -291,6 +293,8 @@ async function handleLinkSkills(projectId: string) {
           :ide-options="ideOptions"
           @install="openInstallModal"
           @install-many="openInstallModal"
+          @update-local="updateLocalSkill"
+          @update-local-many="updateLocalSkills"
           @export-local="exportLocalSkills"
           @delete-local="openDeleteLocalModal"
           @open-dir="openSkillDirectory"

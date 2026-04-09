@@ -42,8 +42,14 @@ export type LocalSkill = {
   description: string;
   path: string;
   source: string;
+  sourceUrl?: string;
   ide?: string;
   usedBy: string[];
+};
+
+export type LocalSkillPreview = {
+  skillMdPath: string;
+  skillMdContent: string;
 };
 
 /**

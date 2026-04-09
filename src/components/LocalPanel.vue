@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import type { LocalSkill, DownloadTask, IdeOption } from "../composables/types";
+import { invoke } from "@tauri-apps/api/core";
+import type { LocalSkill, LocalSkillPreview, DownloadTask, IdeOption } from "../composables/types";
 import DownloadQueue from "./DownloadQueue.vue";
+import SkillPreviewModal from "./SkillPreviewModal.vue";
 import { useI18n } from "vue-i18n";
 import { normalizeSkillName } from "../composables/utils";
+import { useToast } from "../composables/useToast";
 
 const { t } = useI18n();
+const toast = useToast();
 
 const props = defineProps<{
   localSkills: LocalSkill[];
@@ -18,6 +22,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "install", skill: LocalSkill): void;
   (e: "installMany", skills: LocalSkill[]): void;
+  (e: "updateLocal", skill: LocalSkill): void;
+  (e: "updateLocalMany", skills: LocalSkill[]): void;
   (e: "exportLocal", skills: LocalSkill[]): void;
   (e: "deleteLocal", skills: LocalSkill[]): void;
   (e: "openDir", path: string): void;
@@ -29,6 +35,10 @@ const emit = defineEmits<{
 
 const selectedIds = ref<string[]>([]);
 const searchQuery = ref("");
+const previewVisible = ref(false);
+const previewLoading = ref(false);
+const previewSkill = ref<LocalSkill | null>(null);
+const previewData = ref<LocalSkillPreview | null>(null);
 
 const filteredLocalSkills = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase();
@@ -54,6 +64,9 @@ watch(
 
 const selectedSkills = computed(() =>
   filteredLocalSkills.value.filter((skill) => selectedIds.value.includes(skill.id))
+);
+const selectedUpdatableSkills = computed(() =>
+  selectedSkills.value.filter((skill) => !!skill.sourceUrl?.trim())
 );
 
 const allSelected = computed(
@@ -94,9 +107,45 @@ function exportSelected() {
   emit("exportLocal", selectedSkills.value);
 }
 
+function updateSelected() {
+  if (selectedUpdatableSkills.value.length === 0) return;
+  emit("updateLocalMany", selectedUpdatableSkills.value);
+}
+
 function deleteSelected() {
   if (selectedSkills.value.length === 0) return;
   emit("deleteLocal", selectedSkills.value);
+}
+
+async function openPreview(skill: LocalSkill) {
+  const currentSkillPath = skill.path;
+  previewVisible.value = true;
+  previewLoading.value = true;
+  previewSkill.value = skill;
+  previewData.value = null;
+
+  try {
+    const result = await invoke<LocalSkillPreview>("read_local_skill_preview", {
+      skillPath: currentSkillPath
+    });
+    if (previewSkill.value?.path !== currentSkillPath) return;
+    previewData.value = result;
+  } catch {
+    if (previewSkill.value?.path !== currentSkillPath) return;
+    closePreview();
+    toast.error(t("errors.previewFailed"));
+  } finally {
+    if (previewSkill.value?.path === currentSkillPath || previewSkill.value === null) {
+      previewLoading.value = false;
+    }
+  }
+}
+
+function closePreview() {
+  previewVisible.value = false;
+  previewLoading.value = false;
+  previewSkill.value = null;
+  previewData.value = null;
 }
 </script>
 
@@ -136,6 +185,9 @@ function deleteSelected() {
         </button>
         <button class="ghost" :disabled="selectedSkills.length === 0 || localLoading" @click="installSelected">
           {{ t("local.installSelected", { count: selectedSkills.length }) }}
+        </button>
+        <button class="ghost" :disabled="selectedUpdatableSkills.length === 0 || localLoading" @click="updateSelected">
+          {{ t("local.updateSelected", { count: selectedUpdatableSkills.length }) }}
         </button>
         <button class="ghost" :disabled="selectedSkills.length === 0 || localLoading" @click="exportSelected">
           {{ t("local.exportSelected", { count: selectedSkills.length }) }}
@@ -191,6 +243,16 @@ function deleteSelected() {
             <button class="primary" :disabled="installingId === skill.id" @click="$emit('install', skill)">
             {{ installingId === skill.id ? t("local.processing") : t("local.install") }}
             </button>
+            <button
+              v-if="skill.sourceUrl && skill.sourceUrl.trim()"
+              class="ghost"
+              @click="$emit('updateLocal', skill)"
+            >
+              {{ t("local.updateOne") }}
+            </button>
+            <button class="ghost" @click="openPreview(skill)">
+              {{ t("local.preview") }}
+            </button>
             <button class="ghost" @click="$emit('openDir', skill.path)">
               {{ t("local.openDir") }}
             </button>
@@ -216,6 +278,14 @@ function deleteSelected() {
         </div>
       </article>
     </div>
+
+    <SkillPreviewModal
+      :visible="previewVisible"
+      :skill="previewSkill"
+      :preview="previewData"
+      :loading="previewLoading"
+      @close="closePreview"
+    />
   </section>
 </template>
 

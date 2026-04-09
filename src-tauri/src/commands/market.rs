@@ -4,7 +4,9 @@ use crate::types::{
 };
 use crate::utils::download::{download_market_bytes, download_skill_to_dir};
 use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::thread;
@@ -18,6 +20,12 @@ const SKILLS_HUB_CDN_URL: &str =
 const MARKET_FAILURE_COOLDOWN: Duration = Duration::from_secs(90);
 
 static MARKET_FAILURES: OnceLock<Mutex<HashMap<&'static str, Instant>>> = OnceLock::new();
+const MARKET_SKILL_METADATA: &str = ".skills-manager.json";
+
+#[derive(Serialize)]
+struct InstalledSkillMetadata<'a> {
+    source_url: &'a str,
+}
 
 #[derive(Deserialize, Debug)]
 struct SkillsHubResponse {
@@ -269,6 +277,12 @@ fn parse_skills_hub(
         .collect();
 
     Ok((skills, total))
+}
+
+fn write_installed_skill_metadata(installed_dir: &std::path::Path, source_url: &str) -> Result<(), String> {
+    let metadata = InstalledSkillMetadata { source_url };
+    let raw = serde_json::to_string_pretty(&metadata).map_err(|err| err.to_string())?;
+    fs::write(installed_dir.join(MARKET_SKILL_METADATA), raw).map_err(|err| err.to_string())
 }
 
 struct MarketFetchResult {
@@ -644,7 +658,9 @@ pub async fn download_marketplace_skill(
     let install_base_dir = PathBuf::from(&request.install_base_dir);
 
     let result = tauri::async_runtime::spawn_blocking(move || {
-        download_skill_to_dir(&source_url, &skill_name, &install_base_dir, false)
+        let installed_dir = download_skill_to_dir(&source_url, &skill_name, &install_base_dir, false)?;
+        write_installed_skill_metadata(&installed_dir, &source_url)?;
+        Ok::<PathBuf, String>(installed_dir)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -669,7 +685,9 @@ pub async fn update_marketplace_skill(request: DownloadRequest) -> Result<Downlo
     let install_base_dir = PathBuf::from(&request.install_base_dir);
 
     let result = tauri::async_runtime::spawn_blocking(move || {
-        download_skill_to_dir(&source_url, &skill_name, &install_base_dir, true)
+        let installed_dir = download_skill_to_dir(&source_url, &skill_name, &install_base_dir, true)?;
+        write_installed_skill_metadata(&installed_dir, &source_url)?;
+        Ok::<PathBuf, String>(installed_dir)
     })
     .await
     .map_err(|e| e.to_string())?

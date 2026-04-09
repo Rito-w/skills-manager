@@ -328,6 +328,38 @@ export function useSkillsManager() {
     addToDownloadQueue(skill, "update");
   }
 
+  async function updateLocalSkill(skill: LocalSkill) {
+    const sourceUrl = skill.sourceUrl?.trim();
+    if (!sourceUrl) {
+      toast.error(t("errors.updateFailed"));
+      return;
+    }
+
+    addToDownloadQueue(
+      {
+        id: `local:${skill.path}`,
+        name: skill.name,
+        namespace: "local",
+        sourceUrl,
+        description: skill.description,
+        author: "",
+        installs: 0,
+        stars: 0,
+        marketId: "local",
+        marketLabel: "Local"
+      },
+      "update"
+    );
+  }
+
+  async function updateLocalSkills(skills: LocalSkill[]) {
+    for (const skill of skills) {
+      if (skill.sourceUrl?.trim()) {
+        await updateLocalSkill(skill);
+      }
+    }
+  }
+
   async function addManualSkill(sourceUrl: string, customName?: string) {
     const parsed = parseManualSkillSource(sourceUrl);
     if (!parsed) {
@@ -857,6 +889,8 @@ export function useSkillsManager() {
     searchMarketplace,
     downloadSkill,
     updateSkill,
+    updateLocalSkill,
+    updateLocalSkills,
     addManualSkill,
     scanLocalSkills,
     openInstallModal,

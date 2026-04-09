@@ -121,8 +121,16 @@ pub struct LocalSkill {
     pub description: String,
     pub path: String,
     pub source: String,
+    pub source_url: Option<String>,
     pub ide: Option<String>,
     pub used_by: Vec<String>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalSkillPreview {
+    pub skill_md_path: String,
+    pub skill_md_content: String,
 }
 
 #[derive(Deserialize, Debug)]

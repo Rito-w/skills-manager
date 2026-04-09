@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { RemoteSkill, MarketStatus, DownloadTask, MarketSortMode } from "../composables/types";
 import { normalizeSkillName } from "../composables/utils";
 import MarketSettingsModal from "./MarketSettingsModal.vue";
 import ManualAddSkillModal from "./ManualAddSkillModal.vue";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const props = defineProps<{
   query: string;
@@ -45,6 +46,18 @@ const showManualAdd = ref(false);
 
 function handleSortModeChange(event: Event) {
   emit("update:sortMode", (event.target as HTMLSelectElement).value as MarketSortMode);
+}
+
+async function openSource(skill: RemoteSkill) {
+  if (!skill.sourceUrl?.trim()) return;
+  await openUrl(skill.sourceUrl.trim());
+}
+
+async function openTranslatedSource(skill: RemoteSkill) {
+  if (!skill.sourceUrl?.trim()) return;
+  const targetLocale = locale.value.startsWith("zh") ? "zh-CN" : "en";
+  const translateUrl = `https://translate.google.com/translate?hl=${targetLocale}&sl=auto&tl=${targetLocale}&u=${encodeURIComponent(skill.sourceUrl.trim())}`;
+  await openUrl(translateUrl);
 }
 </script>
 
@@ -148,6 +161,22 @@ function handleSortModeChange(event: Event) {
         <p class="card-desc">{{ skill.description }}</p>
         <div class="card-source">{{ t("market.source", { source: skill.marketLabel }) }}</div>
         <div class="card-link">{{ skill.sourceUrl }}</div>
+        <div class="card-actions market-card-actions">
+          <button
+            class="ghost"
+            :disabled="!skill.sourceUrl || !skill.sourceUrl.trim()"
+            @click="openSource(skill)"
+          >
+            {{ t("market.viewSource") }}
+          </button>
+          <button
+            class="ghost"
+            :disabled="!skill.sourceUrl || !skill.sourceUrl.trim()"
+            @click="openTranslatedSource(skill)"
+          >
+            {{ t("market.translateSource") }}
+          </button>
+        </div>
       </article>
     </div>
 
@@ -205,5 +234,11 @@ function handleSortModeChange(event: Event) {
 
 .sort-select {
   min-width: 180px;
+}
+
+.market-card-actions {
+  margin-top: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 </style>
