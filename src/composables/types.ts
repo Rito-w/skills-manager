@@ -73,6 +73,7 @@ export type IdeOption = {
   id: string;
   label: string;
   globalDir: string;
+  projectDir: string;
 };
 
 /**

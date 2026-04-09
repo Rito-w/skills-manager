@@ -211,3 +211,11 @@ pub struct ProjectScanResult {
     pub project_dir: String,
     pub detected_ide_dirs: Vec<ProjectIdeDir>,
 }
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectSkillsRequest {
+    pub project_dir: String,
+    #[serde(default)]
+    pub ide_dirs: Vec<IdeDir>,
+}

@@ -7,6 +7,8 @@ const props = defineProps<{
   visible: boolean;
   ideOptions: IdeOption[];
   projects: ProjectConfig[];
+  initialIdeTargets?: string[];
+  initialProjectIds?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -18,6 +20,21 @@ const { t } = useI18n();
 
 const selectedIdeTargets = ref<string[]>([]);
 const selectedProjectIds = ref<string[]>([]);
+
+import { watch } from "vue";
+watch(
+  () => [props.visible, props.initialIdeTargets, props.initialProjectIds] as [boolean, string[] | undefined, string[] | undefined],
+  ([visible, ideTargets, projectIds]) => {
+    if (visible) {
+      selectedIdeTargets.value = ideTargets ? [...ideTargets] : [];
+      selectedProjectIds.value = projectIds ? [...projectIds] : [];
+    } else {
+      selectedIdeTargets.value = [];
+      selectedProjectIds.value = [];
+    }
+  },
+  { deep: true, immediate: true }
+);
 
 function toggleIdeTarget(ideId: string) {
   const index = selectedIdeTargets.value.indexOf(ideId);
@@ -38,21 +55,11 @@ function toggleProject(projectId: string) {
 }
 
 function confirmInstallToIde() {
-  if (selectedIdeTargets.value.length === 0) {
-    // Button should be disabled, but if clicked somehow, provide feedback
-    return;
-  }
   emit("confirm", "ide", [...selectedIdeTargets.value], props.projects);
-  selectedIdeTargets.value = [];
 }
 
 function confirmInstallToProject() {
-  if (selectedProjectIds.value.length === 0) {
-    // Button should be disabled, but if clicked somehow, provide feedback
-    return;
-  }
   emit("confirm", "project", [...selectedProjectIds.value], props.projects);
-  selectedProjectIds.value = [];
 }
 
 function close() {
@@ -135,10 +142,10 @@ function close() {
           </div>
 
           <div class="modal-footer">
-            <button class="primary" :disabled="selectedIdeTargets.length === 0" @click="confirmInstallToIde">
+            <button class="primary" @click="confirmInstallToIde">
               {{ t("installModal.installToIde") }}
             </button>
-            <button class="primary" :disabled="selectedProjectIds.length === 0 || projects.length === 0" @click="confirmInstallToProject">
+            <button class="primary" :disabled="projects.length === 0" @click="confirmInstallToProject">
               {{ t("installModal.installToProject") }}
             </button>
             <button class="ghost" @click="close">{{ t("installModal.cancel") }}</button>

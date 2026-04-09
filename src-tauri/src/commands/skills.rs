@@ -6,9 +6,9 @@ use crate::types::{
 use crate::utils::download::copy_dir_recursive;
 use crate::utils::path::{normalize_path, resolve_canonical, sanitize_dir_name};
 use crate::utils::security::{is_absolute_ide_path, is_valid_ide_path};
+use std::fs;
 use std::fs::File;
 use std::io;
-use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
@@ -576,8 +576,10 @@ pub fn uninstall_skill(request: UninstallRequest) -> Result<String, String> {
         let base = PathBuf::from(project);
         allowed_roots.push(base.join(".codex/skills"));
         allowed_roots.push(base.join(".trae/skills"));
-        allowed_roots.push(base.join(".opencode/skill"));
+        allowed_roots.push(base.join(".opencode/skills"));
         allowed_roots.push(base.join(".skills-manager/skills"));
+        allowed_roots.push(base.join(".agents/skills"));
+        allowed_roots.push(base.join(".claude/skills"));
     }
 
     let target = PathBuf::from(&request.target_path);
@@ -843,4 +845,44 @@ pub fn scan_project_ide_dirs(request: ProjectScanRequest) -> Result<ProjectScanR
         project_dir: request.project_dir,
         detected_ide_dirs,
     })
+}
+
+#[tauri::command]
+pub fn scan_project_skills(
+    request: crate::types::ProjectSkillsRequest,
+) -> Result<Vec<LocalSkill>, String> {
+    let project_dir = PathBuf::from(&request.project_dir);
+    if !project_dir.exists() {
+        return Err("Project directory does not exist".to_string());
+    }
+
+    let dirs_to_scan: Vec<String> = if request.ide_dirs.is_empty() {
+        vec![
+            ".agents/skills".to_string(),
+            ".claude/skills".to_string(),
+            ".opencode/skills".to_string(),
+        ]
+    } else {
+        request
+            .ide_dirs
+            .iter()
+            .map(|item| item.relative_dir.clone())
+            .collect()
+    };
+
+    let mut unique_dirs = dirs_to_scan;
+    unique_dirs.sort();
+    unique_dirs.dedup();
+
+    let mut all_skills = Vec::new();
+
+    for relative_path in unique_dirs {
+        let skills_dir = project_dir.join(&relative_path);
+        let skills = collect_skills_from_dir(&skills_dir, "project", Some(&relative_path));
+        for skill in skills {
+            all_skills.push(skill);
+        }
+    }
+
+    Ok(all_skills)
 }

@@ -175,6 +175,7 @@ export default {
     exporting: "正在导出...",
     adopting: "正在纳入统一管理...",
     handled: "已处理 {linked} 个目标，跳过 {skipped} 个目标。",
+    handledDetailed: "成功安装 {linked} 个，卸载 {uninstalled} 个，跳过 {skipped} 个目标。",
     imported: "成功导入 {success} 个 Skill，失败 {failed} 个。",
     exported: "已导出到 {path}",
     selectSkillsForProject: "请为项目 {name} 选择要安装的 Skills"
@@ -247,6 +248,7 @@ export default {
     configureHint: "选择该项目需要使用的 IDE，安装 Skills 时会链接到这些 IDE 的项目目录。",
     cancel: "取消",
     save: "保存",
+    installedSkills: "已安装的扩展",
     ideTargets: "IDE 目标：{count} 个",
     detected: "已检测：{count} 个",
     selectFolder: "选择项目文件夹",
