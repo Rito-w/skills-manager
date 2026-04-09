@@ -158,6 +158,13 @@ export default {
     confirm: "Uninstall",
     deleteConfirm: "Delete"
   },
+  unmanagedModal: {
+    title: "Manage Unmanaged Skill",
+    hint: "This skill exists locally in the project but is not yet centrally managed by this app. What would you like to do?",
+    searchMarket: "Search in Market",
+    adopt: "Manage Centrally",
+    cancel: "Cancel"
+  },
   loading: {
     title: "Processing"
   },

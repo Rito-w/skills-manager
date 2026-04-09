@@ -157,6 +157,13 @@ export default {
     confirm: "确认卸载",
     deleteConfirm: "确认删除"
   },
+  unmanagedModal: {
+    title: "管理未纳管技能",
+    hint: "该技能存在于项目本地但尚未受本应用统一管理，您希望执行什么操作？",
+    searchMarket: "去市场检索",
+    adopt: "纳入统一管理",
+    cancel: "取消"
+  },
   loading: {
     title: "处理中"
   },

@@ -20,20 +20,20 @@ const { t } = useI18n();
   <div v-if="visible && skill" class="modal-backdrop">
     <div class="modal">
       <div class="modal-title">
-        管理未纳管技能
+        {{ t("unmanagedModal.title") }}
       </div>
       <div class="hint">
-        该技能存在于项目本地但尚未受本应用统一管理，您希望执行什么操作？
+        {{ t("unmanagedModal.hint") }}
       </div>
       <div class="card-link">{{ skill.name }}</div>
       <div class="modal-actions" style="margin-top: 16px;">
-        <button class="ghost" @click="$emit('cancel')">{{ t("uninstallModal.cancel") || "取消" }}</button>
+        <button class="ghost" @click="$emit('cancel')">{{ t("unmanagedModal.cancel") }}</button>
         <div style="flex: 1;"></div>
         <button class="primary" style="background: var(--color-primary-bg); color: var(--color-primary-text);" @click="$emit('search')">
-          去市场检索
+          {{ t("unmanagedModal.searchMarket") }}
         </button>
         <button class="primary" @click="$emit('adopt')">
-          纳入统一管理
+          {{ t("unmanagedModal.adopt") }}
         </button>
       </div>
     </div>
