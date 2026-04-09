@@ -34,22 +34,10 @@ function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-function uniqueDestination(baseName, seenNames) {
-  if (!seenNames.has(baseName)) {
-    seenNames.add(baseName);
-    return baseName;
-  }
-
-  const parsed = path.parse(baseName);
-  const nextName = `${parsed.name}-${target}${parsed.ext}`;
-  seenNames.add(nextName);
-  return nextName;
-}
-
 const files = listFiles(bundleDir);
 const signatureFiles = files.filter((filePath) => filePath.endsWith(".sig"));
 const stagedPairs = [];
-const seenNames = new Set();
+const filePrefix = `${target}__`;
 
 for (const sigPath of signatureFiles) {
   const assetPath = sigPath.slice(0, -4);
@@ -57,7 +45,7 @@ for (const sigPath of signatureFiles) {
     continue;
   }
 
-  const assetName = uniqueDestination(path.basename(assetPath), seenNames);
+  const assetName = `${filePrefix}${path.basename(assetPath)}`;
   const sigName = `${assetName}.sig`;
 
   stagedPairs.push({

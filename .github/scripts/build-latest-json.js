@@ -41,6 +41,17 @@ function normalizeArch(value) {
 
 function inferPlatformFromFile(filePath) {
   const normalized = filePath.replaceAll(path.sep, "/").toLowerCase();
+  const targetPrefixMatch = path.basename(filePath).match(
+    /^(aarch64-apple-darwin|x86_64-apple-darwin|x86_64-unknown-linux-gnu|x86_64-pc-windows-msvc)__/i
+  );
+
+  if (targetPrefixMatch) {
+    const target = targetPrefixMatch[1].toLowerCase();
+    if (target.includes("apple-darwin")) return `darwin-${normalizeArch(target)}`;
+    if (target.includes("windows-msvc")) return `windows-${normalizeArch(target)}`;
+    if (target.includes("linux-gnu")) return `linux-${normalizeArch(target)}`;
+  }
+
   let osPart = null;
 
   if (normalized.includes("/macos/") || normalized.endsWith(".app.tar.gz")) {
