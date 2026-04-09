@@ -5,9 +5,27 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { i18n, supportedLocales, type SupportedLocale } from "../i18n";
 import { useUpdateStore } from "../composables/useUpdateStore";
 import { useToast } from "../composables/useToast";
+import { useIdeConfig } from "../composables/useIdeConfig";
 
 const { t } = useI18n();
 const toast = useToast();
+const { 
+  ideOptions, 
+  hiddenIdes, 
+  toggleIdeVisibility, 
+  refreshIdeOptions,
+  customIdeName,
+  customIdeDir,
+  addCustomIde,
+  removeCustomIde
+} = useIdeConfig();
+
+function handleAddCustomIde() {
+  addCustomIde(
+    (key: string) => t(key as any),
+    (msg: string) => toast.error(msg)
+  );
+}
 
 // Theme state
 type ThemeMode = "light" | "dark" | "system";
@@ -108,6 +126,7 @@ watch(locale, (next) => {
 onMounted(async () => {
   // Load app info (may already be loaded by startup check)
   await loadAppInfo();
+  refreshIdeOptions();
 
   // Load preferences
   theme.value = loadTheme();
@@ -194,7 +213,55 @@ onMounted(async () => {
         </div>
       </div>
     </section>
-
+    <!-- Ides Section -->
+    <section class="settings-section">
+      <h2 class="section-title">{{ t("settings.ides.title") }}</h2>
+      <div class="appearance-content">
+        <p class="setting-hint">{{ t("settings.ides.hint") }}</p>
+        <div class="ides-grid">
+          <label 
+            v-for="ide in ideOptions" 
+            :key="ide.id" 
+            class="ide-checkbox"
+          >
+            <input 
+              type="checkbox" 
+              :checked="!hiddenIdes.includes(ide.id)"
+              @change="toggleIdeVisibility(ide.id)"
+            />
+            <span class="ide-label">{{ ide.label }}</span>
+            <button
+              v-if="ide.id.startsWith('custom-')"
+              class="ide-delete-btn"
+              @click.stop.prevent="removeCustomIde(ide.label)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </label>
+        </div>
+        <div style="margin-top: 16px;">
+          <h3 class="section-title" style="margin-bottom: 12px; font-size: 14px;">{{ t("ide.addHint") }}</h3>
+          <div style="display: flex; gap: 10px; align-items: center; max-width: 600px;">
+            <input
+              v-model="customIdeName"
+              class="ide-input"
+              :placeholder="t('ide.namePlaceholder')"
+              style="flex: 1; padding: 8px 12px; border: 1px solid var(--color-input-border); border-radius: 8px; background: var(--color-input-bg); color: var(--color-text);"
+            />
+            <input
+              v-model="customIdeDir"
+              class="ide-input"
+              :placeholder="t('ide.dirPlaceholder')"
+              style="flex: 2; padding: 8px 12px; border: 1px solid var(--color-input-border); border-radius: 8px; background: var(--color-input-bg); color: var(--color-text);"
+            />
+            <button class="primary" @click="handleAddCustomIde">{{ t("ide.addButton") }}</button>
+          </div>
+        </div>
+      </div>
+    </section>
     <!-- Appearance Section -->
     <section class="settings-section">
       <h2 class="section-title">{{ t("settings.appearance.title") }}</h2>
@@ -565,5 +632,73 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 12px;
   }
+}
+
+.setting-hint {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.ides-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.ide-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-input-border);
+  background: var(--color-input-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.ide-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 3px;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.ide-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}
+
+.ide-checkbox:hover {
+  border-color: var(--color-input-focus);
+}
+
+.ide-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.ide-label {
+  font-size: 14px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

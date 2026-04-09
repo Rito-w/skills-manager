@@ -49,6 +49,10 @@ export default {
       light: "浅色",
       dark: "深色",
       system: "跟随系统"
+    },
+    ides: {
+      title: "IDE 显示设置",
+      hint: "选择您想要在列表中显示的 IDE，取消勾选的 IDE 将被隐藏。"
     }
   },
   market: {

@@ -31,6 +31,19 @@ function saveIdeOptions(custom: IdeOption[]): void {
   localStorage.setItem(STORAGE_KEYS.IDE_OPTIONS, JSON.stringify(custom));
 }
 
+function loadHiddenIdes(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.HIDDEN_IDES);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHiddenIdes(hidden: string[]): void {
+  localStorage.setItem(STORAGE_KEYS.HIDDEN_IDES, JSON.stringify(hidden));
+}
+
 /**
  * Load last install targets from localStorage
  */
@@ -53,14 +66,16 @@ export function saveLastInstallTargets(labels: string[]): void {
   localStorage.setItem(STORAGE_KEYS.INSTALL_TARGETS, JSON.stringify(labels));
 }
 
+const ideOptions = ref<IdeOption[]>([]);
+const selectedIdeFilter = ref("Antigravity");
+const customIdeName = ref("");
+const customIdeDir = ref("");
+const hiddenIdes = ref<string[]>([]);
+
 /**
  * IDE configuration management composable
  */
 export function useIdeConfig() {
-  const ideOptions = ref<IdeOption[]>([]);
-  const selectedIdeFilter = ref("Antigravity");
-  const customIdeName = ref("");
-  const customIdeDir = ref("");
 
   const customIdeOptions = computed(() =>
     ideOptions.value.filter((item) => item.id.startsWith("custom-"))
@@ -68,10 +83,25 @@ export function useIdeConfig() {
 
   function refreshIdeOptions(): void {
     ideOptions.value = loadIdeOptions();
-    if (!ideOptions.value.find((item) => item.label === selectedIdeFilter.value)) {
-      selectedIdeFilter.value = ideOptions.value[0]?.label ?? "Antigravity";
+    hiddenIdes.value = loadHiddenIdes();
+    const visibleOptions = ideOptions.value.filter(ide => !hiddenIdes.value.includes(ide.id));
+    if (!visibleOptions.find((item) => item.label === selectedIdeFilter.value)) {
+      selectedIdeFilter.value = visibleOptions[0]?.label ?? "Antigravity";
     }
   }
+
+  function toggleIdeVisibility(id: string): void {
+    if (hiddenIdes.value.includes(id)) {
+      hiddenIdes.value = hiddenIdes.value.filter(hId => hId !== id);
+    } else {
+      hiddenIdes.value.push(id);
+    }
+    saveHiddenIdes(hiddenIdes.value);
+  }
+
+  const visibleIdeOptions = computed(() =>
+    ideOptions.value.filter((item) => !hiddenIdes.value.includes(item.id))
+  );
 
   function addCustomIde(t: (key: string) => string, onError: (msg: string) => void): boolean {
     const name = customIdeName.value.trim();
@@ -119,9 +149,12 @@ export function useIdeConfig() {
     customIdeName,
     customIdeDir,
     customIdeOptions,
+    hiddenIdes,
+    visibleIdeOptions,
 
     // Actions
     refreshIdeOptions,
+    toggleIdeVisibility,
     addCustomIde,
     removeCustomIde,
     loadLastInstallTargets,
