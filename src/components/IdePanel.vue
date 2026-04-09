@@ -107,28 +107,6 @@ function adoptSelected() {
         {{ option.label }}
       </button>
     </div>
-    <div class="hint">{{ t("ide.addHint") }}</div>
-    <div class="row">
-      <input
-        :value="customIdeName"
-        class="input small"
-        :placeholder="t('ide.namePlaceholder')"
-        @input="$emit('update:customIdeName', ($event.target as HTMLInputElement).value)"
-      />
-      <input
-        :value="customIdeDir"
-        class="input small"
-        :placeholder="t('ide.dirPlaceholder')"
-        @input="$emit('update:customIdeDir', ($event.target as HTMLInputElement).value)"
-      />
-      <button class="primary" @click="$emit('addCustomIde')">{{ t("ide.addButton") }}</button>
-    </div>
-    <div v-if="customIdeOptions.length > 0" class="chips">
-      <div v-for="option in customIdeOptions" :key="option.id" class="chip">
-        <span>{{ option.label }}</span>
-        <button class="ghost" @click="$emit('removeCustomIde', option.label)">{{ t("ide.deleteButton") }}</button>
-      </div>
-    </div>
 
     <div class="actions">
       <div class="buttons">

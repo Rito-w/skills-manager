@@ -26,7 +26,8 @@ export const STORAGE_KEYS = {
   INSTALL_TARGETS: "skillsManager.lastInstallTargets",
   MARKET_CONFIGS: "skillsManager.marketConfigs",
   ENABLED_MARKETS: "market-enabled",
-  PROJECTS: "skillsManager.projects"
+  PROJECTS: "skillsManager.projects",
+  HIDDEN_IDES: "skillsManager.hiddenIdes"
 } as const;
 
 

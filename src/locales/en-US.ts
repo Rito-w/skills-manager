@@ -49,6 +49,10 @@ export default {
       light: "Light",
       dark: "Dark",
       system: "System"
+    },
+    ides: {
+      title: "IDE Visibility",
+      hint: "Select which IDEs you want to show. Unchecked IDEs will be hidden from the list."
     }
   },
   market: {

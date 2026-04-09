@@ -81,6 +81,7 @@ const {
   localSkills,
   localLoading,
   ideOptions,
+  visibleIdeOptions,
   selectedIdeFilter,
   customIdeName,
   customIdeDir,
@@ -288,7 +289,7 @@ async function handleLinkSkills(projectId: string) {
           :local-loading="localLoading"
           :installing-id="installingId"
           :download-queue="downloadQueue"
-          :ide-options="ideOptions"
+          :ide-options="visibleIdeOptions"
           @install="openInstallModal"
           @install-many="openInstallModal"
           @export-local="exportLocalSkills"
@@ -329,7 +330,7 @@ async function handleLinkSkills(projectId: string) {
 
       <template v-else-if="activeTab === 'ide'">
         <IdePanel
-          :ide-options="ideOptions"
+          :ide-options="visibleIdeOptions"
           :selected-ide-filter="selectedIdeFilter"
           :custom-ide-name="customIdeName"
           :custom-ide-dir="customIdeDir"
