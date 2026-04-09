@@ -176,6 +176,7 @@ export default {
     exporting: "Exporting...",
     adopting: "Adding to central management...",
     handled: "Handled {linked} targets, skipped {skipped} targets.",
+    handledDetailed: "Installed {linked}, Uninstalled {uninstalled}, Skipped {skipped} targets.",
     imported: "Successfully imported {success} skills, failed {failed}.",
     exported: "Exported to {path}",
     selectSkillsForProject: "Select skills to install for project {name}"
@@ -248,6 +249,7 @@ export default {
     configureHint: "Select IDEs that this project needs. Skills will be linked to these IDE directories in the project.",
     cancel: "Cancel",
     save: "Save",
+    installedSkills: "Installed Skills",
     ideTargets: "IDE Targets: {count}",
     detected: "Detected: {count}",
     selectFolder: "Select Project Folder",

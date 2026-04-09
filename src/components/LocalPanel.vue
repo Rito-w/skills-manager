@@ -30,6 +30,12 @@ const emit = defineEmits<{
 const selectedIds = ref<string[]>([]);
 const searchQuery = ref("");
 
+defineExpose({
+  setSearchQuery: (query: string) => {
+    searchQuery.value = query;
+  }
+});
+
 const filteredLocalSkills = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase();
   if (!keyword) return props.localSkills;

@@ -59,6 +59,7 @@ export function useSkillsManager() {
   const showInstallModal = ref(false);
   const installTargetSkills = ref<LocalSkill[]>([]);
   const installTargetIde = ref<string[]>([]);
+  const installTargetProjectIds = ref<string[]>([]);
 
   const showUninstallModal = ref(false);
   const uninstallTargetPath = ref("");
@@ -111,6 +112,9 @@ export function useSkillsManager() {
     loadLastInstallTargets,
     saveLastInstallTargets
   } = useIdeConfig();
+
+  // Make sure we export installTargetProjectIds
+
 
   function addCustomIde() {
     const success = doAddCustomIde(t, (msg: string) => {
@@ -416,12 +420,43 @@ export function useSkillsManager() {
     return result;
   }
 
-  function openInstallModal(skill: LocalSkill | LocalSkill[]) {
+  async function openInstallModal(skill: LocalSkill | LocalSkill[]) {
     installTargetSkills.value = Array.isArray(skill) ? skill : [skill];
-    const lastTargets = loadLastInstallTargets();
-    const available = new Set(ideOptions.value.map((item) => item.label));
-    const nextTargets = lastTargets.filter((label) => available.has(label));
-    installTargetIde.value = nextTargets;
+    
+    if (installTargetSkills.value.length === 1) {
+      const singleSkill = installTargetSkills.value[0];
+      installTargetIde.value = ideOptions.value
+        .filter(ide => singleSkill.usedBy.includes(ide.label))
+        .map(ide => ide.label);
+
+      try {
+        const raw = localStorage.getItem("skillsManager.projects");
+        const projects: ProjectConfig[] = raw ? JSON.parse(raw) : [];
+        const installedProjectIds: string[] = [];
+        for (const p of projects) {
+          const pSkills = await invoke<LocalSkill[]>("scan_project_skills", {
+            request: { 
+              projectDir: p.path,
+              ideDirs: ideOptions.value.map(ide => ({
+                label: ide.label,
+                relativeDir: ide.projectDir || ide.globalDir
+              }))
+            }
+          });
+          if (pSkills.some(s => s.name === singleSkill.name)) {
+            installedProjectIds.push(p.id);
+          }
+        }
+        installTargetProjectIds.value = installedProjectIds;
+      } catch (err) {
+        console.error("Failed to load project skills for modal", err);
+        installTargetProjectIds.value = [];
+      }
+    } else {
+      installTargetIde.value = [];
+      installTargetProjectIds.value = [];
+    }
+
     showInstallModal.value = true;
   }
 
@@ -440,7 +475,7 @@ export function useSkillsManager() {
         return;
       }
       
-      if (installTargetSkills.value.length === 0 || targetIds.length === 0) {
+      if (installTargetSkills.value.length === 0) {
         toast.error(t("errors.selectAtLeastOne"));
         return;
       }
@@ -452,22 +487,91 @@ export function useSkillsManager() {
       try {
         let totalLinked = 0;
         let totalSkipped = 0;
+        let totalUninstalled = 0;
         
-        // Get selected projects
-        const selectedProjects = projects.filter(p => targetIds.includes(p.id));
-        
-        // Install to project directories
         for (const skill of installTargetSkills.value) {
-          for (const project of selectedProjects) {
-            for (const ideLabel of project.ideTargets) {
-              const result = await linkSkillToProjectInternal(skill, project, ideLabel, true, true);
-              totalLinked += result.linked.length;
-              totalSkipped += result.skipped.length;
+          const originalProjectIds = installTargetProjectIds.value;
+          const targetsToAdd = targetIds.filter(id => !originalProjectIds.includes(id));
+          const targetsToRemove = installTargetSkills.value.length === 1 
+            ? originalProjectIds.filter(id => !targetIds.includes(id))
+            : [];
+            
+          for (const projectId of targetsToAdd) {
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+              const linkTargets: LinkTarget[] = [];
+              const targetDirs = new Set<string>();
+              
+              if (project.ideTargets && project.ideTargets.length > 0) {
+                for (const ideLabel of project.ideTargets) {
+                  const targetIde = ideOptions.value.find(ide => ide.label === ideLabel);
+                  if (targetIde) {
+                    const dir = targetIde.projectDir || targetIde.globalDir;
+                    if (!targetDirs.has(dir)) {
+                      targetDirs.add(dir);
+                      linkTargets.push({ name: `Project (${dir})`, path: `${project.path}/${dir}` });
+                    }
+                  }
+                }
+              }
+              
+              if (linkTargets.length === 0) {
+                linkTargets.push({ name: `Project (.agents/skills)`, path: `${project.path}/.agents/skills` });
+              }
+
+              try {
+                const result = (await invoke("link_local_skill", {
+                  request: {
+                    skillPath: skill.path,
+                    skillName: skill.name,
+                    linkTargets
+                  }
+                })) as InstallResult;
+                totalLinked += result.linked.length;
+                totalSkipped += result.skipped.length;
+              } catch (err) {
+                console.error(`Failed to link skill to project ${project.name}:`, err);
+              }
+            }
+          }
+
+          for (const projectId of targetsToRemove) {
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+              try {
+                const pSkills = await invoke<LocalSkill[]>("scan_project_skills", {
+                  request: { 
+                    projectDir: project.path,
+                    ideDirs: ideOptions.value.map(ide => ({
+                      label: ide.label,
+                      relativeDir: ide.projectDir || ide.globalDir
+                    }))
+                  }
+                });
+                const installedSkills = pSkills.filter(s => s.name === skill.name);
+                for (const installedSkill of installedSkills) {
+                  await invoke("uninstall_skill", {
+                    request: {
+                      targetPath: installedSkill.path,
+                      projectDir: project.path,
+                      ideDirs: []
+                    }
+                  });
+                  totalUninstalled++;
+                }
+              } catch (err) {
+                console.error(`Failed to uninstall skill from project ${project.name}:`, err);
+              }
             }
           }
         }
         
-        toast.success(t("messages.handled", { linked: totalLinked, skipped: totalSkipped }));
+        if (totalLinked > 0 || totalUninstalled > 0) {
+          toast.success(t("messages.handledDetailed", { linked: totalLinked, skipped: totalSkipped, uninstalled: totalUninstalled }));
+        } else {
+          toast.info(t("messages.handledDetailed", { linked: totalLinked, skipped: totalSkipped, uninstalled: totalUninstalled }));
+        }
+        
         await scanLocalSkills();
         showInstallModal.value = false;
         installTargetSkills.value = [];
@@ -481,11 +585,12 @@ export function useSkillsManager() {
       return;
     }
     
-    // IDE installation (existing logic)
-    if (installTargetSkills.value.length === 0 || targetIds.length === 0) {
+    // IDE installation
+    if (installTargetSkills.value.length === 0) {
       toast.error(t("errors.selectAtLeastOne"));
       return;
     }
+    
     if (installingId.value) return;
     installingId.value = installTargetSkills.value.length === 1 ? installTargetSkills.value[0].id : "__batch__";
     busy.value = true;
@@ -494,17 +599,55 @@ export function useSkillsManager() {
     try {
       let totalLinked = 0;
       let totalSkipped = 0;
+      let totalUninstalled = 0;
       
       // Install to global IDE directories
       for (const skill of installTargetSkills.value) {
-        for (const label of targetIds) {
+        const originalTargets = ideOptions.value
+          .filter(ide => skill.usedBy.includes(ide.label))
+          .map(ide => ide.label);
+
+        const targetsToAdd = targetIds.filter(t => !originalTargets.includes(t));
+        
+        // Only perform removals if we are managing a single skill
+        const targetsToRemove = installTargetSkills.value.length === 1 
+          ? originalTargets.filter(t => !targetIds.includes(t))
+          : [];
+
+        // Add
+        for (const label of targetsToAdd) {
           const result = await linkSkillInternal(skill, label, true, true);
           totalLinked += result.linked.length;
           totalSkipped += result.skipped.length;
         }
+
+        // Remove
+        for (const label of targetsToRemove) {
+          const installedSkill = ideSkills.value.find(
+            s => s.ide === label && s.name === skill.name
+          );
+          if (installedSkill) {
+            await invoke("uninstall_skill", {
+              request: {
+                targetPath: installedSkill.path,
+                projectDir: null,
+                ideDirs: ideOptions.value.map(item => ({
+                  label: item.label,
+                  relativeDir: item.globalDir
+                }))
+              }
+            });
+            totalUninstalled++;
+          }
+        }
       }
       
-      toast.success(t("messages.handled", { linked: totalLinked, skipped: totalSkipped }));
+      if (totalLinked > 0 || totalUninstalled > 0) {
+        toast.success(t("messages.handledDetailed", { linked: totalLinked, skipped: totalSkipped, uninstalled: totalUninstalled }));
+      } else {
+        toast.info(t("messages.handledDetailed", { linked: totalLinked, skipped: totalSkipped, uninstalled: totalUninstalled }));
+      }
+      
       await scanLocalSkills();
       showInstallModal.value = false;
       installTargetSkills.value = [];
@@ -550,6 +693,7 @@ export function useSkillsManager() {
   function closeInstallModal() {
     showInstallModal.value = false;
     installTargetSkills.value = [];
+    installTargetProjectIds.value = [];
   }
 
   function openUninstallModal(targetPath: string) {
@@ -832,6 +976,7 @@ export function useSkillsManager() {
     customIdeDir,
     showInstallModal,
     installTargetIde,
+    installTargetProjectIds,
     showUninstallModal,
     uninstallTargetName,
     busy,

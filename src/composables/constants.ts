@@ -4,18 +4,18 @@ import type { IdeOption, MarketStatus } from "./types";
  * Default IDE options available for skill installation
  */
 export const defaultIdeOptions: IdeOption[] = [
-  { id: "antigravity", label: "Antigravity", globalDir: ".gemini/antigravity/skills" },
-  { id: "claude", label: "Claude Code", globalDir: ".claude/skills" },
-  { id: "codebuddy", label: "CodeBuddy", globalDir: ".codebuddy/skills" },
-  { id: "codex", label: "Codex", globalDir: ".codex/skills" },
-  { id: "cursor", label: "Cursor", globalDir: ".cursor/skills" },
-  { id: "kiro", label: "Kiro", globalDir: ".kiro/skills" },
-  { id: "openclaw", label: "OpenClaw", globalDir: ".openclaw/skills" },
-  { id: "opencode", label: "OpenCode", globalDir: ".config/opencode/skills" },
-  { id: "qoder", label: "Qoder", globalDir: ".qoder/skills" },
-  { id: "trae", label: "Trae", globalDir: ".trae/skills" },
-  { id: "vscode", label: "VSCode", globalDir: ".github/skills" },
-  { id: "windsurf", label: "Windsurf", globalDir: ".windsurf/skills" }
+  { id: "antigravity", label: "Antigravity", globalDir: ".gemini/antigravity/skills",projectDir: ".agents/skills" },
+  { id: "claude", label: "Claude Code", globalDir: ".claude/skills",projectDir: ".claude/skills" },
+  { id: "codebuddy", label: "CodeBuddy", globalDir: ".codebuddy/skills",projectDir: ".codebuddy/skills" },
+  { id: "codex", label: "Codex", globalDir: ".agents/skills",projectDir: ".agents/skills" },
+  { id: "cursor", label: "Cursor", globalDir: ".cursor/skills",projectDir: ".cursor/skills" },
+  { id: "kiro", label: "Kiro", globalDir: ".kiro/skills",projectDir: ".kiro/skills" },
+  { id: "openclaw", label: "OpenClaw", globalDir: ".openclaw/skills",projectDir: ".agents/skills" },
+  { id: "opencode", label: "OpenCode", globalDir: ".config/opencode/skills",projectDir: ".opencode/skills" },
+  { id: "qoder", label: "Qoder", globalDir: ".qoder/skills",projectDir: ".qoder/skills" },
+  { id: "trae", label: "Trae", globalDir: ".trae/skills",projectDir: ".trae/skills" },
+  { id: "vscode", label: "VSCode", globalDir: ".copilot/skills",projectDir: ".github/skills" },
+  { id: "windsurf", label: "Windsurf", globalDir: ".codeium/.windsurf/skills",projectDir: ".windsurf/skills" }
 ];
 
 /**
