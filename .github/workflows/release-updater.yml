@@ -31,7 +31,9 @@ jobs:
       - name: Validate tag ref
         shell: bash
         run: |
-          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual dispatch, skipping tag validation"
+          elif [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
             echo "Release Updater must run on a version tag, current ref: ${GITHUB_REF}"
             exit 1
           fi
@@ -93,7 +95,9 @@ jobs:
       - name: Validate tag ref
         shell: bash
         run: |
-          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual dispatch, skipping tag validation"
+          elif [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
             echo "Release Updater must run on a version tag, current ref: ${GITHUB_REF}"
             exit 1
           fi
