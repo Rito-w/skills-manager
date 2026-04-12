@@ -17,7 +17,7 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-          - os: macos-15-intel
+          - os: macos-14
             target: x86_64-apple-darwin
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
@@ -122,7 +122,10 @@ jobs:
         shell: bash
         run: |
           if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release create "${GITHUB_REF_NAME}" --title "Skills Manager ${GITHUB_REF_NAME}" --notes-file ".github/release-notes.md"
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "Skills Manager ${GITHUB_REF_NAME}" \
+              --notes-file ".github/release-notes.md" \
+              --draft
           fi
 
       - name: Upload release assets
@@ -130,14 +133,36 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          mapfile -t files < <(find artifacts -type f | sort)
-          gh release upload "${GITHUB_REF_NAME}" "${files[@]}" "latest.json" --clobber
+          # Upload files one by one with retry to avoid transient API errors
+          upload_file() {
+            local file="$1"
+            local tag="$2"
+            for i in 1 2 3; do
+              if gh release upload "$tag" "$file" --clobber 2>/dev/null; then
+                echo "Uploaded $(basename "$file")"
+                return 0
+              fi
+              echo "Retry $i/3 for $(basename "$file")..."
+              sleep $((i * 5))
+            done
+            echo "Failed to upload $(basename "$file") after 3 retries" >&2
+            return 1
+          }
 
-      - name: Sync release notes
+          # Upload all artifact files (use process substitution to avoid subshell)
+          while read -r file; do
+            upload_file "$file" "${GITHUB_REF_NAME}"
+          done < <(find artifacts -type f | sort)
+
+          # Upload latest.json
+          upload_file "latest.json" "${GITHUB_REF_NAME}"
+
+      - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           gh release edit "${GITHUB_REF_NAME}" \
             --title "Skills Manager ${GITHUB_REF_NAME}" \
-            --notes-file ".github/release-notes.md"
+            --notes-file ".github/release-notes.md" \
+            --draft=false
