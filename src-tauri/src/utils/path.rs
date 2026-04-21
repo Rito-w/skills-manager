@@ -82,6 +82,33 @@ pub fn sanitize_dir_name(name: &str) -> String {
     result
 }
 
+fn short_stable_hash(input: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in input.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:08x}")[..8].to_string()
+}
+
+pub fn sanitize_skill_dir_name(name: &str, fallback_key: &str) -> String {
+    let sanitized = sanitize_dir_name(name);
+    if sanitized != "skill" {
+        return sanitized;
+    }
+
+    if name.trim().eq_ignore_ascii_case("skill") {
+        return sanitized;
+    }
+
+    let hash_source = if name.trim().is_empty() {
+        fallback_key
+    } else {
+        name
+    };
+    format!("skill-{}", short_stable_hash(hash_source))
+}
+
 pub fn resolve_canonical(path: &Path) -> Option<PathBuf> {
     fs::canonicalize(path)
         .ok()

@@ -4,7 +4,7 @@ use crate::types::{
     ProjectIdeDir, ProjectScanRequest, ProjectScanResult, UninstallRequest,
 };
 use crate::utils::download::copy_dir_recursive;
-use crate::utils::path::{normalize_path, resolve_canonical, sanitize_dir_name};
+use crate::utils::path::{normalize_path, resolve_canonical, sanitize_skill_dir_name};
 use crate::utils::security::{is_absolute_ide_path, is_valid_ide_path};
 use std::fs;
 use std::fs::File;
@@ -430,7 +430,7 @@ pub fn link_local_skill(request: LinkRequest) -> Result<InstallResult, String> {
     }
     let skill_path = skill_canon;
 
-    let safe_name = sanitize_dir_name(&request.skill_name);
+    let safe_name = sanitize_skill_dir_name(&request.skill_name, &request.skill_path);
 
     let mut linked = Vec::new();
     let mut skipped = Vec::new();
@@ -713,7 +713,7 @@ pub fn import_local_skill(request: ImportRequest) -> Result<String, String> {
     }
 
     let (name, _) = read_skill_metadata(&source_path);
-    let safe_name = sanitize_dir_name(&name);
+    let safe_name = sanitize_skill_dir_name(&name, &request.source_path);
     let target_dir = manager_dir.join(&safe_name);
 
     if target_dir.exists() {
@@ -755,7 +755,10 @@ pub fn adopt_ide_skill(request: AdoptIdeSkillRequest) -> Result<String, String> 
         )
     };
 
-    let safe_name = sanitize_dir_name(&name);
+    let fallback_key = target
+        .to_str()
+        .unwrap_or(request.target_path.as_str());
+    let safe_name = sanitize_skill_dir_name(&name, fallback_key);
     let manager_target = manager_root.join(&safe_name);
 
     if manager_target.exists() {

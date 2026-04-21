@@ -1,4 +1,4 @@
-use crate::utils::path::{normalize_path, sanitize_dir_name};
+use crate::utils::path::{normalize_path, sanitize_skill_dir_name};
 use crate::utils::security::is_within_directory;
 use std::fs;
 use std::io::{Cursor, Read};
@@ -76,7 +76,7 @@ pub fn download_skill_to_dir(
 
     fs::create_dir_all(install_base_dir).map_err(|err| err.to_string())?;
 
-    let safe_name = sanitize_dir_name(skill_name);
+    let safe_name = sanitize_skill_dir_name(skill_name, source_url);
     let target_dir = install_base_dir.join(&safe_name);
     if target_dir.exists() {
         if overwrite {
