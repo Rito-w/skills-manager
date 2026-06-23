@@ -177,6 +177,7 @@ function adoptSelected() {
                   (!skill.managed ? ` · ${t("ide.unmanaged")}` : "")
                 }}
               </div>
+              <p v-if="skill.description" class="card-desc">{{ skill.description }}</p>
             </div>
           </div>
           <div class="card-actions">

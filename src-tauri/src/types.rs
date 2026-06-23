@@ -146,6 +146,7 @@ pub struct LocalScanRequest {
 pub struct IdeSkill {
     pub id: String,
     pub name: String,
+    pub description: String,
     pub path: String,
     pub ide: String,
     pub source: String,
