@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.32](https://github.com/Rito-w/skills-manager/compare/v0.3.31...v0.3.32) (2026-07-01)
+
+
+### Bug Fixes
+
+* **ci:** include unsigned installer packages (.dmg) in release assets ([50ac9d3](https://github.com/Rito-w/skills-manager/commit/50ac9d373d619d22c43f3fabeb3395ff9547ed59))
+
 ### [0.3.21](https://github.com/Rito-w/skills-manager/compare/v0.3.20...v0.3.21) (2026-03-18)
 
 
