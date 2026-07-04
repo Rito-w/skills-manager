@@ -1,7 +1,7 @@
 {
   "name": "skills-manager-gui",
   "private": true,
-  "version": "0.3.32",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

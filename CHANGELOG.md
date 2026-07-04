@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.4.0](https://github.com/Rito-w/skills-manager/compare/v0.3.32...v0.4.0) (2026-07-04)
+
+
+### Features
+
+* replace online markets with local aggregated skills index ([eb7fe07](https://github.com/Rito-w/skills-manager/commit/eb7fe07f49c032aa58727d410508f3915ba95812))
+
 ### [0.3.32](https://github.com/Rito-w/skills-manager/compare/v0.3.31...v0.3.32) (2026-07-01)
 
 
