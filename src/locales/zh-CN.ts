@@ -73,7 +73,7 @@ export default {
     resultsTitle: "搜索结果",
     loadingHint: "正在加载技能列表...",
     emptyHint: "未找到匹配的技能。",
-    meta: "作者 {author} • ⭐️ {stars} • ⬇️ {installs}",
+    meta: "作者 {author}",
     update: "更新",
     updated: "已更新",
     updating: "正在更新...",
@@ -83,12 +83,7 @@ export default {
     unavailable: "暂不可用",
     source: "来源：{source}",
     viewSource: "查看",
-    loadMore: "加载更多",
-    sortLabel: "排序",
-    sortDefault: "默认（按 Star）",
-    sortStars: "按 Star 从高到低",
-    sortInstalls: "按下载量从高到低",
-    sortHint: "仅对当前结果做本地排序，不会重新发起搜索。"
+    loadMore: "加载更多"
   },
   local: {
     title: "已有 Skills",

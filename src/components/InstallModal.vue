@@ -291,8 +291,7 @@ function close() {
 }
 
 .project-item {
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
 }
 
 .option-content {

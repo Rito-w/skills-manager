@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-18T12:52:03.849Z",
+  "updatedAt": "2026-04-18T14:06:12.662Z",
   "missions": [
     {
       "id": "session:fb4b987a-cfc6-4332-a7ed-569bcd3a980d:none",
@@ -632,6 +632,80 @@
           "agent": "security-reviewer:ab68825",
           "detail": "completed",
           "sourceKey": "session-stop:ab68825"
+        }
+      ]
+    },
+    {
+      "id": "session:371c10ed-9d9f-4d42-b18c-36cb4fdbded4:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-04-18T14:06:07.565Z",
+      "updatedAt": "2026-04-18T14:06:12.662Z",
+      "status": "done",
+      "workerCount": 2,
+      "taskCounts": {
+        "total": 2,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 2,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "Explore:a50bb35",
+          "role": "Explore",
+          "ownership": "a50bb35",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-04-18T14:06:07.987Z"
+        },
+        {
+          "name": "Plan:acb7c7e",
+          "role": "Plan",
+          "ownership": "acb7c7e",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-04-18T14:06:12.662Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:a50bb35:2026-04-18T14:06:07.565Z",
+          "at": "2026-04-18T14:06:07.565Z",
+          "kind": "update",
+          "agent": "Explore:a50bb35",
+          "detail": "started Explore:a50bb35",
+          "sourceKey": "session-start:a50bb35"
+        },
+        {
+          "id": "session-start:acb7c7e:2026-04-18T14:06:07.617Z",
+          "at": "2026-04-18T14:06:07.617Z",
+          "kind": "update",
+          "agent": "Plan:acb7c7e",
+          "detail": "started Plan:acb7c7e",
+          "sourceKey": "session-start:acb7c7e"
+        },
+        {
+          "id": "session-stop:a50bb35:2026-04-18T14:06:07.987Z",
+          "at": "2026-04-18T14:06:07.987Z",
+          "kind": "completion",
+          "agent": "Explore:a50bb35",
+          "detail": "completed",
+          "sourceKey": "session-stop:a50bb35"
+        },
+        {
+          "id": "session-stop:acb7c7e:2026-04-18T14:06:12.662Z",
+          "at": "2026-04-18T14:06:12.662Z",
+          "kind": "completion",
+          "agent": "Plan:acb7c7e",
+          "detail": "completed",
+          "sourceKey": "session-stop:acb7c7e"
         }
       ]
     }

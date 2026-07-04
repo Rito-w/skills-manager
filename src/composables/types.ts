@@ -7,21 +7,12 @@ export type RemoteSkill = {
   namespace: string;
   sourceUrl: string;
   description: string;
+  descriptionZh: string;
   author: string;
   installs: number;
   stars: number;
   marketId: string;
   marketLabel: string;
-};
-
-/**
- * Market connection status
- */
-export type MarketStatus = {
-  id: string;
-  name: string;
-  status: "online" | "error" | "needs_key";
-  error?: string;
 };
 
 /**
@@ -100,11 +91,6 @@ export type DownloadTask = {
   status: "pending" | "downloading" | "done" | "error";
   error?: string;
 };
-
-/**
- * Market result sorting mode
- */
-export type MarketSortMode = "default" | "stars_desc" | "installs_desc";
 
 /**
  * IDE directory in a project

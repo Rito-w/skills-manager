@@ -5,12 +5,11 @@ import { dirname, homeDir, join } from "@tauri-apps/api/path";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useToast } from "./useToast";
 import type {
-  RemoteSkill, MarketStatus, InstallResult, LocalSkill,
-  IdeSkill, Overview, LinkTarget, DownloadTask, ProjectConfig, MarketSortMode
+  RemoteSkill, InstallResult, LocalSkill,
+  IdeSkill, Overview, LinkTarget, DownloadTask, ProjectConfig
 } from "./types";
 import { buildProjectLinkTargets } from "./projectTargets";
 import { useIdeConfig } from "./useIdeConfig";
-import { useMarketConfig } from "./useMarketConfig";
 import {
   isSafeRelativePath,
   getErrorMessage,
@@ -25,13 +24,12 @@ export function useSkillsManager() {
   const cacheTtlMs = 10 * 60 * 1000;
   const searchCache = new Map<
     string,
-    { timestamp: number; data: { skills: RemoteSkill[]; total: number; limit: number; offset: number; marketStatuses: MarketStatus[] } }
+    { timestamp: number; data: { skills: RemoteSkill[]; total: number; limit: number; offset: number } }
   >();
   const activeTab = ref<"local" | "market" | "ide" | "projects" | "settings">("local");
 
   const query = ref("");
   const results = ref<RemoteSkill[]>([]);
-  const marketSortMode = ref<MarketSortMode>("default");
   const total = ref(0);
   const limit = ref(20);
   const offset = ref(0);
@@ -71,14 +69,7 @@ export function useSkillsManager() {
   const recentTaskStatus = ref<Record<string, "download" | "update">>({});
 
   const hasMore = computed(() => results.value.length < total.value);
-  const sortedResults = computed(() => {
-    const sortBy = marketSortMode.value === "installs_desc" ? "installs" : "stars";
-    return [...results.value].sort((left, right) => {
-      const diff = right[sortBy] - left[sortBy];
-      if (diff !== 0) return diff;
-      return left.name.localeCompare(right.name);
-    });
-  });
+  const sortedResults = computed(() => results.value);
   const localSkillNameSet = computed(() => {
     const set = new Set<string>();
     for (const skill of localSkills.value) {
@@ -90,14 +81,6 @@ export function useSkillsManager() {
     }
     return set;
   });
-
-  const {
-    marketConfigs,
-    enabledMarkets,
-    marketStatuses,
-    loadMarketConfigs,
-    saveMarketConfigs: persistMarketConfigs
-  } = useMarketConfig();
 
   const {
     ideOptions,
@@ -178,7 +161,6 @@ export function useSkillsManager() {
         results.value = cached.data.skills;
         total.value = cached.data.total;
         offset.value = cached.data.offset;
-        marketStatuses.value = cached.data.marketStatuses;
         loading.value = false;
         return;
       }
@@ -188,16 +170,13 @@ export function useSkillsManager() {
       const response = await invoke("search_marketplaces", {
         query: query.value,
         limit: limit.value,
-        offset: nextOffset,
-        apiKeys: marketConfigs.value,
-        enabledMarkets: enabledMarkets.value
+        offset: nextOffset
       });
       const data = response as {
         skills: RemoteSkill[];
         total: number;
         limit: number;
         offset: number;
-        marketStatuses: MarketStatus[];
       };
 
       const deduped = dedupeSkills(reset ? data.skills : [...results.value, ...data.skills]);
@@ -205,17 +184,11 @@ export function useSkillsManager() {
 
       total.value = data.total;
       offset.value = data.offset;
-      if (Array.isArray(data.marketStatuses)) {
-        marketStatuses.value = data.marketStatuses;
-      }
 
       if (reset) {
-        const cachedStatuses = Array.isArray(data.marketStatuses)
-          ? data.marketStatuses
-          : marketStatuses.value;
         searchCache.set(cacheKey, {
           timestamp: Date.now(),
-          data: { ...data, marketStatuses: cachedStatuses }
+          data
         });
       }
     } catch (err) {
@@ -342,6 +315,7 @@ export function useSkillsManager() {
         namespace: "local",
         sourceUrl,
         description: skill.description,
+        descriptionZh: "",
         author: "",
         installs: 0,
         stars: 0,
@@ -379,6 +353,7 @@ export function useSkillsManager() {
       namespace: "manual",
       sourceUrl: parsed.normalizedUrl,
       description: t("market.manualDescription"),
+      descriptionZh: "",
       author: parsed.kind === "zip" ? t("market.manualSourceLabel") : "",
       installs: 0,
       stars: 0,
@@ -393,12 +368,6 @@ export function useSkillsManager() {
 
     await downloadSkill(remoteSkill);
     return "download" as const;
-  }
-
-  function saveMarketConfigs(configs: Record<string, string>, enabled: Record<string, boolean>): void {
-    searchCache.clear();
-    persistMarketConfigs(configs, enabled);
-    void searchMarketplace(true, true);
   }
 
   async function scanLocalSkills() {
@@ -840,7 +809,6 @@ export function useSkillsManager() {
 
   onMounted(() => {
     refreshIdeOptions();
-    loadMarketConfigs();
     void searchMarketplace(true);
     void scanLocalSkills();
   });
@@ -871,13 +839,9 @@ export function useSkillsManager() {
     busyText,
     hasMore,
     sortedResults,
-    marketSortMode,
     localSkillNameSet,
     filteredIdeSkills,
     customIdeOptions,
-    marketConfigs,
-    marketStatuses,
-    enabledMarkets,
     downloadQueue,
     uninstallMode,
     recentTaskStatus,
@@ -886,7 +850,6 @@ export function useSkillsManager() {
     refreshIdeOptions,
     addCustomIde,
     removeCustomIde,
-    saveMarketConfigs,
     searchMarketplace,
     downloadSkill,
     updateSkill,

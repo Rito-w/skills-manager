@@ -31,10 +31,6 @@ pub fn download_bytes(url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>, St
     download_bytes_with_timeout(url, headers, 60)
 }
 
-pub fn download_market_bytes(url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>, String> {
-    download_bytes_with_timeout(url, headers, 4)
-}
-
 fn download_bytes_with_timeout(
     url: &str,
     headers: &[(&str, &str)],

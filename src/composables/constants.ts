@@ -1,4 +1,4 @@
-import type { IdeOption, MarketStatus } from "./types";
+import type { IdeOption } from "./types";
 
 /**
  * Default IDE options available for skill installation
@@ -24,31 +24,9 @@ export const defaultIdeOptions: IdeOption[] = [
 export const STORAGE_KEYS = {
   IDE_OPTIONS: "skillsManager.ideOptions",
   INSTALL_TARGETS: "skillsManager.lastInstallTargets",
-  MARKET_CONFIGS: "skillsManager.marketConfigs",
-  ENABLED_MARKETS: "market-enabled",
   PROJECTS: "skillsManager.projects"
 } as const;
 
-
-/**
- * Default market statuses
- */
-export const defaultMarketStatuses: MarketStatus[] = [
-  { id: "claude-plugins", name: "Claude Plugins", status: "online" },
-  { id: "skillsllm", name: "SkillsLLM", status: "online" },
-  { id: "skills-hub", name: "Skills Hub", status: "online" },
-  { id: "skillsmp", name: "SkillsMP", status: "needs_key" }
-];
-
-/**
- * Default enabled markets
- */
-export const defaultEnabledMarkets: Record<string, boolean> = {
-  "claude-plugins": true,
-  "skillsllm": true,
-  "skills-hub": true,
-  "skillsmp": false // Disabled by default until API key is provided
-};
 
 /**
  * IDE directory mappings for project-level skills

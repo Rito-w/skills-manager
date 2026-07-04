@@ -13,9 +13,8 @@ use tauri::Manager;
 pub use crate::types::{
     AdoptIdeSkillRequest, DeleteLocalSkillRequest, ExportSkillsRequest, IdeDir, IdeSkill,
     ImportRequest, InstallResult, LinkRequest, LinkTarget, LocalScanRequest, LocalSkill,
-    LocalSkillPreview, MarketStatus, MarketStatusType, Overview, ProjectIdeDir, ProjectScanRequest,
-    ProjectScanResult, RemoteSkill, RemoteSkillView, RemoteSkillsResponse,
-    RemoteSkillsViewResponse, UninstallRequest,
+    LocalSkillPreview, Overview, ProjectIdeDir, ProjectScanRequest, ProjectScanResult,
+    RemoteSkillView, RemoteSkillsViewResponse, UninstallRequest,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

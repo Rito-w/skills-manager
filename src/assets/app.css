@@ -47,6 +47,8 @@
   --color-success-text: #2e6b3d;
   --color-success-border: #c8e0cb;
   --color-overlay: rgba(17, 18, 22, 0.4);
+  --control-checkbox-size: 22px;
+  --control-checkbox-radius: 6px;
 }
 
 :root[data-theme="dark"] {
@@ -258,6 +260,56 @@ body {
   font-size: 14px;
 }
 
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: var(--control-checkbox-size);
+  height: var(--control-checkbox-size);
+  min-width: var(--control-checkbox-size);
+  margin: 0;
+  border: 2px solid var(--color-input-focus);
+  border-radius: var(--control-checkbox-radius);
+  background: var(--color-input-bg);
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  transform: scale(0);
+  transition: transform 0.14s ease;
+  background: var(--color-primary-text);
+  clip-path: polygon(14% 44%, 0 63%, 42% 100%, 100% 18%, 80% 0, 37% 62%);
+}
+
+input[type="checkbox"]:checked {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary-bg);
+}
+
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--color-primary-bg);
+  box-shadow: 0 0 0 4px rgba(106, 111, 122, 0.16);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--color-input-focus);
+  outline-offset: 3px;
+}
+
+input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .select select {
   padding: 8px 10px;
   border-radius: 10px;
@@ -300,7 +352,7 @@ body {
 }
 
 .market-cards {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 .card {
@@ -320,13 +372,26 @@ body {
 .card-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card-header > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.card-header > button,
+.card-header > template > button {
+  flex-shrink: 0;
 }
 
 .card-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-meta {
@@ -358,6 +423,9 @@ body {
   font-size: 12px;
   color: var(--color-link);
   word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .primary,

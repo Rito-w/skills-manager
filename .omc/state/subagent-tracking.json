@@ -1,60 +1,7 @@
 {
-  "agents": [
-    {
-      "agent_id": "a145bef",
-      "agent_type": "Explore",
-      "started_at": "2026-03-18T07:19:03.326Z",
-      "parent_mode": "none",
-      "status": "completed",
-      "completed_at": "2026-03-18T07:19:04.232Z",
-      "duration_ms": 906
-    },
-    {
-      "agent_id": "a6ce6c6",
-      "agent_type": "Plan",
-      "started_at": "2026-03-18T07:19:03.442Z",
-      "parent_mode": "none",
-      "status": "running"
-    },
-    {
-      "agent_id": "a5e6a27",
-      "agent_type": "Explore",
-      "started_at": "2026-03-18T12:29:50.464Z",
-      "parent_mode": "none",
-      "status": "completed",
-      "completed_at": "2026-03-18T12:29:51.407Z",
-      "duration_ms": 943
-    },
-    {
-      "agent_id": "a510c65",
-      "agent_type": "Plan",
-      "started_at": "2026-03-18T12:29:50.563Z",
-      "parent_mode": "none",
-      "status": "completed",
-      "completed_at": "2026-03-18T12:29:56.622Z",
-      "duration_ms": 6059
-    },
-    {
-      "agent_id": "a22aa87",
-      "agent_type": "Explore",
-      "started_at": "2026-03-18T12:30:03.665Z",
-      "parent_mode": "none",
-      "status": "completed",
-      "completed_at": "2026-03-18T12:30:04.749Z",
-      "duration_ms": 1084
-    },
-    {
-      "agent_id": "ab68825",
-      "agent_type": "oh-my-claudecode:security-reviewer",
-      "started_at": "2026-03-18T12:52:02.951Z",
-      "parent_mode": "none",
-      "status": "completed",
-      "completed_at": "2026-03-18T12:52:03.849Z",
-      "duration_ms": 898
-    }
-  ],
-  "total_spawned": 5,
-  "total_completed": 5,
+  "agents": [],
+  "total_spawned": 0,
+  "total_completed": 0,
   "total_failed": 0,
-  "last_updated": "2026-03-18T12:52:03.951Z"
+  "last_updated": "2026-04-18T14:06:12.771Z"
 }

@@ -73,7 +73,7 @@ export default {
     resultsTitle: "Results",
     loadingHint: "Loading...",
     emptyHint: "No results",
-    meta: "Author {author} • ⭐️ {stars} • ⬇️ {installs}",
+    meta: "Author {author}",
     download: "Download",
     downloaded: "Downloaded",
     downloading: "Downloading",
@@ -84,11 +84,6 @@ export default {
     source: "Source: {source}",
     viewSource: "View",
     loadMore: "Load More",
-    sortLabel: "Sort By",
-    sortDefault: "Default (Stars)",
-    sortStars: "Stars (High to Low)",
-    sortInstalls: "Installs (High to Low)",
-    sortHint: "Reorder current results locally without triggering a new search.",
     unavailable: "Unavailable"
   },
   local: {

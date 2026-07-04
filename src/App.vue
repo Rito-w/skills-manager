@@ -3,7 +3,6 @@ import { onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { i18n, supportedLocales, type SupportedLocale } from "./i18n";
 import { useSkillsManager } from "./composables/useSkillsManager";
-import type { MarketSortMode } from "./composables/types";
 import { useUpdateStore } from "./composables/useUpdateStore";
 import { useProjectConfig } from "./composables/useProjectConfig";
 import { useToast } from "./composables/useToast";
@@ -74,7 +73,6 @@ const {
   activeTab,
   query,
   sortedResults,
-  marketSortMode,
   loading,
   installingId,
   updatingId,
@@ -116,10 +114,6 @@ const {
   openSkillDirectory,
   adoptIdeSkill,
   adoptManyIdeSkills,
-  marketConfigs,
-  marketStatuses,
-  enabledMarkets,
-  saveMarketConfigs,
   downloadQueue,
   recentTaskStatus,
   retryDownload,
@@ -147,10 +141,6 @@ const {
 const showProjectAddModal = ref(false);
 const showProjectConfigModal = ref(false);
 const configuringProject = ref<typeof selectedProject.value>(null);
-
-function handleUpdateMarketSortMode(next: MarketSortMode) {
-  marketSortMode.value = next;
-}
 
 async function handleAddProject() {
   showProjectAddModal.value = true;
@@ -310,14 +300,10 @@ async function handleLinkSkills(projectId: string) {
           v-model:query="query"
           :loading="loading"
           :results="sortedResults"
-          :sort-mode="marketSortMode"
           :has-more="hasMore"
           :installing-id="installingId"
           :updating-id="updatingId"
           :local-skill-name-set="localSkillNameSet"
-          :market-configs="marketConfigs"
-          :market-statuses="marketStatuses"
-          :enabled-markets="enabledMarkets"
           :download-queue="downloadQueue"
           :recent-task-status="recentTaskStatus"
           @search="searchMarketplace(true)"
@@ -326,8 +312,6 @@ async function handleLinkSkills(projectId: string) {
           @download="downloadSkill"
           @update="updateSkill"
           @manual-add="({ sourceUrl, name }) => addManualSkill(sourceUrl, name)"
-          @update:sort-mode="handleUpdateMarketSortMode"
-          @saveConfigs="saveMarketConfigs"
         />
       </template>
 

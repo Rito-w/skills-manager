@@ -1,7 +1,0 @@
-{
-  "tool_name": "Task",
-  "tool_input_preview": "{\"description\":\"检查 Windows 安全性\",\"prompt\":\"检查这个项目中刚刚修复的批量安装功能（InstallModal.vue 相关代码）在 Windows 平台上是否存在安全漏洞。\\n\\n重点关注：\\n1. 路径遍历攻击 (Path Traversal)\\n2. 符号链接攻击 (Symlink Attack)\\n3. Windows 特有安全问题（如反斜杠处理、保留文...",
-  "error": "Agent type 'security-reviewer' not found. Available agents: general-purpose, statusline-setup, Explore, Plan, claude-code-guide, oh-my-claudecode:code-reviewer, oh-my-claudecode:scientist, oh-my-claudecode:qa-tester, oh-my-claudecode:writer, oh-my-claudecode:explore, oh-my-claudecode:security-reviewer, oh-my-claudecode:test-engineer, oh-my-claudecode:architect, oh-my-claudecode:debugger, oh-my-claudecode:designer, oh-my-claudecode:analyst, oh-my-claudecode:code-simplifier, oh-my-claudecode:execu...",
-  "timestamp": "2026-03-18T12:51:51.127Z",
-  "retry_count": 1
-}
