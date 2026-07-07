@@ -49,6 +49,7 @@ export type LocalSkillPreview = {
 export type IdeSkill = {
   id: string;
   name: string;
+  description: string;
   path: string;
   ide: string;
   source: string;

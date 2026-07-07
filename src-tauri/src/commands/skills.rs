@@ -30,33 +30,38 @@ fn read_skill_metadata(skill_dir: &Path) -> (String, String) {
     }
 
     let content = fs::read_to_string(&skill_file).unwrap_or_default();
-    let lines = content.lines();
-
     let mut frontmatter_name: Option<String> = None;
-    let mut description = String::new();
+    let mut frontmatter_description: Option<String> = None;
+    let mut body_description = String::new();
 
-    let mut in_frontmatter = false;
+    let mut lines = content.lines();
+    let has_frontmatter = lines.next().is_some_and(|line| line.trim() == "---");
+
+    if has_frontmatter {
+        for line in lines.by_ref() {
+            let trimmed = line.trim();
+            if trimmed == "---" {
+                break;
+            }
+            if let Some(value) = trimmed.strip_prefix("name:") {
+                frontmatter_name = Some(value.trim().trim_matches('"').to_string());
+            } else if let Some(value) = trimmed.strip_prefix("description:") {
+                frontmatter_description = Some(value.trim().trim_matches('"').to_string());
+            }
+        }
+    } else {
+        lines = content.lines();
+    }
+
     for line in lines {
         let trimmed = line.trim();
-        if trimmed == "---" {
-            if !in_frontmatter {
-                in_frontmatter = true;
-                continue;
-            }
-            break;
-        }
-        if in_frontmatter {
-            if let Some(value) = trimmed.strip_prefix("name:") {
-                frontmatter_name = Some(value.trim().to_string());
-            }
-            continue;
-        }
-        if description.is_empty() && !trimmed.is_empty() && !trimmed.starts_with('#') {
-            description = trimmed.to_string();
+        if body_description.is_empty() && !trimmed.is_empty() && !trimmed.starts_with('#') {
+            body_description = trimmed.to_string();
         }
     }
 
     let final_name = frontmatter_name.unwrap_or(name);
+    let description = frontmatter_description.unwrap_or(body_description);
     (final_name, description)
 }
 
@@ -167,14 +172,17 @@ fn collect_ide_skills(
             continue;
         }
 
-        let name = if has_skill_file {
-            read_skill_metadata(skill_dir).0
+        let (name, description) = if has_skill_file {
+            read_skill_metadata(skill_dir)
         } else {
-            skill_dir
-                .file_name()
-                .and_then(|value| value.to_str())
-                .unwrap_or("skill")
-                .to_string()
+            (
+                skill_dir
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("skill")
+                    .to_string(),
+                String::new(),
+            )
         };
 
         let path = skill_dir.to_path_buf();
@@ -224,6 +232,7 @@ fn collect_ide_skills(
         skills.push(IdeSkill {
             id: path.display().to_string(),
             name,
+            description,
             path: path.display().to_string(),
             ide: ide_label.to_string(),
             source: source.to_string(),
@@ -951,4 +960,99 @@ pub fn scan_project_ide_dirs(request: ProjectScanRequest) -> Result<ProjectScanR
         project_dir: request.project_dir,
         detected_ide_dirs,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{collect_ide_skills, read_skill_metadata};
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_root(test_name: &str) -> PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("skills-manager-{test_name}-{timestamp}"))
+    }
+
+    #[test]
+    fn reads_frontmatter_description() {
+        let root = temp_root("frontmatter-description");
+        let skill_dir = root.join("example-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            r#"---
+name: example
+description: "Frontmatter description"
+---
+
+# Example
+
+Body fallback description.
+"#,
+        )
+        .unwrap();
+
+        let (name, description) = read_skill_metadata(&skill_dir);
+
+        assert_eq!(name, "example");
+        assert_eq!(description, "Frontmatter description");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn falls_back_to_body_description() {
+        let root = temp_root("body-description");
+        let skill_dir = root.join("body-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            r#"---
+name: body-skill
+---
+
+# Body Skill
+
+First body description.
+"#,
+        )
+        .unwrap();
+
+        let (name, description) = read_skill_metadata(&skill_dir);
+
+        assert_eq!(name, "body-skill");
+        assert_eq!(description, "First body description.");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn collect_ide_skills_includes_description() {
+        let root = temp_root("ide-description");
+        let ide_dir = root.join("ide");
+        let skill_dir = ide_dir.join("ide-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            r#"---
+name: ide-skill
+description: IDE skill description
+---
+"#,
+        )
+        .unwrap();
+
+        let mut manager_skills = Vec::new();
+        let skills = collect_ide_skills(&ide_dir, "Codex", &[], &mut manager_skills);
+
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].name, "ide-skill");
+        assert_eq!(skills[0].description, "IDE skill description");
+
+        let _ = fs::remove_dir_all(root);
+    }
 }
